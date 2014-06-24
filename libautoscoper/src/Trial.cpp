@@ -164,6 +164,9 @@ Trial::Trial(const string& filename)
 
     // Load the volumes.
     volumes.clear();
+	volumestransform.clear();
+	current_volume = 0;
+	num_volumes = 0;
     for (unsigned int i = 0; i < volumeFiles.size(); ++i) {
 
         try {
@@ -188,6 +191,8 @@ Trial::Trial(const string& filename)
             volume.scaleZ(scaleZ);
 
             volumes.push_back(volume);
+			volumestransform.push_back(VolumeTransform());
+			num_volumes++;
         }
         catch (exception& e) {
             throw e;
@@ -255,4 +260,71 @@ void Trial::save(const std::string& filename)
     file.close();
 }
 
+KeyCurve * Trial::getXCurve(int volumeID){
+	if(volumeID < volumestransform.size() && 
+		volumeID >= 0){
+		return &volumestransform[volumeID].x_curve;
+	}else{
+		return &volumestransform[current_volume].x_curve;
+	}
+}
+
+
+KeyCurve * Trial::getYCurve(int volumeID){
+	if(volumeID < volumestransform.size() && 
+		volumeID >= 0){
+		return &volumestransform[volumeID].y_curve;
+	}else{
+		return &volumestransform[current_volume].y_curve;
+	}
+}
+
+KeyCurve * Trial::getZCurve(int volumeID){
+	if(volumeID < volumestransform.size() && 
+		volumeID >= 0){
+		return &volumestransform[volumeID].z_curve;
+	}else{
+		return &volumestransform[current_volume].z_curve;
+	}
+}
+
+KeyCurve * Trial::getYawCurve(int volumeID){
+	if(volumeID < volumestransform.size() && 
+		volumeID >= 0){
+		return &volumestransform[volumeID].yaw_curve;
+	}else{
+		return &volumestransform[current_volume].yaw_curve;
+	}
+}
+
+KeyCurve * Trial::getPitchCurve(int volumeID){
+	if(volumeID < volumestransform.size() && 
+		volumeID >= 0){
+		return &volumestransform[volumeID].pitch_curve;
+	}else{
+		return &volumestransform[current_volume].pitch_curve;
+	}
+}
+
+KeyCurve * Trial::getRollCurve(int volumeID){
+	if(volumeID < volumestransform.size() && 
+		volumeID >= 0){
+		return &volumestransform[volumeID].roll_curve;
+	}else{
+		return &volumestransform[current_volume].roll_curve;
+	}
+}
+
+CoordFrame * Trial::getVolumeMatrix(int volumeID){
+	if(volumeID < volumestransform.size() && 
+		volumeID >= 0){
+		return &volumestransform[volumeID].volumeMatrix;
+	}else{
+		return &volumestransform[current_volume].volumeMatrix;
+	}
+}
+
 } // namespace xromm
+
+
+

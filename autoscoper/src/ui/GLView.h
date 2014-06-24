@@ -26,6 +26,7 @@ public:
 
 	void setView(View * view);
 	void setStaticView(bool staticView);
+	void saveView(std::string filename);
 
 protected:
     void paintGL();
@@ -57,6 +58,7 @@ private:
 	void draw_cylinder(float radius, float height, int slices);
 	void draw_camera();
 	void draw_textured_quad(const double* pts, unsigned int texid);
+	
 };
 
 

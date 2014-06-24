@@ -43,6 +43,7 @@
 #define XROMM_GPU_VIEW_HPP
 
 #include <vector>
+#include <string>
 #ifdef WITH_CUDA
 typedef float Buffer;
 typedef float GLBuffer;
@@ -79,11 +80,16 @@ private:
     View& operator=(const View& view);
 
 public:
-    // Accessors
+    
+	void addDrrRenderer();
+
+	// Accessors
     Camera* camera() { return camera_; }
     const Camera* camera() const { return camera_; }
-    RayCaster* drrRenderer() { return drrRenderer_; }
-    const RayCaster* drrRenderer() const { return drrRenderer_; }
+
+    RayCaster* drrRenderer(int idx) { return drrRenderer_[idx]; }
+    const RayCaster* drrRenderer(int idx) const { return drrRenderer_[idx]; }
+
     RadRenderer* radRenderer() { return radRenderer_; }
     const RadRenderer* radRenderer() const { return radRenderer_; }
     std::vector<Filter*>& drrFilters() { return drrFilters_; }
@@ -104,6 +110,8 @@ public:
     bool drr_enabled;
     bool rad_enabled;
 
+	void saveImage(std::string filename, int width,int height);
+	
 private:
 #ifdef WITH_CUDA
 	void init();
@@ -118,7 +126,9 @@ private:
                 unsigned height);
 
     Camera* camera_;
-    RayCaster* drrRenderer_;
+
+	
+    std::vector <RayCaster*> drrRenderer_;
     RadRenderer* radRenderer_;
 
     std::vector<Filter*> drrFilters_;
@@ -127,7 +137,8 @@ private:
     size_t maxWidth_;
 	size_t maxHeight_;
 
-    Buffer* drrBuffer_;
+    std::vector<Buffer*> drrBuffer_;
+	Buffer* drrBufferMerged_;
     Buffer* drrFilterBuffer_;
     Buffer* radBuffer_;
     Buffer* radFilterBuffer_;

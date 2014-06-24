@@ -18,6 +18,7 @@ using xromm::CoordFrame;
 
 class GLTracker;
 class FilterDockWidget;
+class VolumeDockWidget;
 class CameraViewWidget;
 class TimelineDockWidget;
 class TrackingOptionsDialog;
@@ -34,9 +35,9 @@ class AutoscoperMainWindow : public QMainWindow{
 		~AutoscoperMainWindow();
 
 		Tracker * getTracker(){return tracker;};
-		Manip3D * getManipulator(){return manipulator;}
-		CoordFrame * getVolume_matrix(){return volume_matrix;}
-		void setVolume_matrix(CoordFrame matrix);
+		Manip3D * getManipulator(int idx = -1);
+		//CoordFrame * getVolume_matrix(){return volume_matrix;}
+		//void setVolume_matrix(CoordFrame matrix);
 		std::vector<unsigned int> *getTextures(){return &textures;}
 
 		GraphData* getPosition_graph();
@@ -52,10 +53,11 @@ class AutoscoperMainWindow : public QMainWindow{
 		QString get_filename(bool save = true, QString type = "");
 		void update_graph_min_max(GraphData* graph, int frame = -1);
 		void frame_changed();
-
+		void volume_changed();
 	private:
 		Ui::AutoscoperMainWindow *ui;
 		FilterDockWidget* filters_widget;
+		VolumeDockWidget* volumes_widget;
 		TimelineDockWidget* timeline_widget;
 		TrackingOptionsDialog* tracking_dialog;
 
@@ -74,8 +76,8 @@ class AutoscoperMainWindow : public QMainWindow{
 		const QGLContext* shared_glcontext;
 
 		//Manipulator
-		Manip3D * manipulator;
-		CoordFrame * volume_matrix;
+		std::vector <Manip3D *> manipulator;
+		//CoordFrame * volume_matrix;
 
 		//History
 		History *history;
@@ -94,7 +96,7 @@ class AutoscoperMainWindow : public QMainWindow{
 		//temporary maybe rename/order
 		void timelineSetValue(int value);
 
-		void set_manip_matrix(const CoordFrame& frame);
+		void set_manip_matrix(int idx, const CoordFrame& frame);
 		std::vector<unsigned int> textures;
 		void reset_graph();
 		
@@ -115,6 +117,7 @@ class AutoscoperMainWindow : public QMainWindow{
 		void on_actionImport_Tracking_triggered(bool checked);
 		void on_actionExport_Tracking_triggered(bool checked);
 		void on_actionQuit_triggered(bool checked);
+		void on_actionSave_Test_Sequence_triggered(bool checked);
 
 		//Edit
 		void on_actionUndo_triggered(bool checked);

@@ -39,3 +39,7 @@ void CameraViewWidget::setSharedGLContext(const QGLContext * sharedContext){
 void CameraViewWidget::draw(){
 	widget->glView->update();
 }
+
+void CameraViewWidget::saveFrame(QString filename){
+	widget->glView->saveView(filename.toStdString().c_str());
+}

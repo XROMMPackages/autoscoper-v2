@@ -286,7 +286,8 @@ void ModelViewTreeWidgetItem::resetVectors(){
 
 void ModelViewTreeWidgetItem::updateModelview(){
 	if(m_type == 1){
-		xromm::gpu::RayCaster* rayCaster = ((CameraTreeWidgetItem*) QTreeWidgetItem::parent())->getView()->drrRenderer();
+		int idx = 0;
+		xromm::gpu::RayCaster* rayCaster = ((CameraTreeWidgetItem*) QTreeWidgetItem::parent())->getView()->drrRenderer(idx);
 
 		double value = exp(7*parameters[0]->value-5);
 		rayCaster->setSampleDistance(value);	

@@ -17,7 +17,7 @@
 // contributors may be used to endorse or promote products derived from
 // this software without specific prior written permission.
 //
-// THIS SOFTWARE IS PROVIDED BY BROWN UNIVERSITY ‚ÄúAS IS‚Äù WITH NO
+// THIS SOFTWARE IS PROVIDED BY BROWN UNIVERSITY ìAS ISî WITH NO
 // WARRANTIES OR REPRESENTATIONS OF ANY KIND WHATSOEVER EITHER EXPRESS OR
 // IMPLIED, INCLUDING WITHOUT LIMITATION ANY WARRANTY OF DESIGN OR
 // MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, EACH OF WHICH ARE
@@ -36,76 +36,42 @@
 // THEIR USE OF THE SOFTWARE.
 // ---------------------------------
 
-/// \file Tracker.hpp
+/// \file Trial.hpp
 /// \author Andy Loomis
 
-#ifndef XROMM_TRACKER_H
-#define XROMM_TRACKER_H
+#ifndef XROMM_VOLUME_TRANSFORM_HPP
+#define XROMM_VOLUME_TRANSFORM_HPP
 
 #include <vector>
-#include <string>
 
-#include "Filter.hpp"
-
-#ifdef WITH_CUDA
-#include "gpu/cuda/RayCaster.hpp"
-#include "gpu/cuda/RadRenderer.hpp"
-
-#else
-#include "gpu/opencl/RayCaster.hpp"
-#include "gpu/opencl/RadRenderer.hpp"
-#include "gpu/opencl/OpenCL.hpp"
-#endif
-#include "Trial.hpp"
-
-
+#include "KeyCurve.hpp"
+#include "CoordFrame.hpp"
 namespace xromm
 {
+// The trial class contains all of the state information for an autoscoper run.
+// It should eventually become an in-memory representation of the xromm
+// autoscoper file format. Currently that file format does not however hold the
+// tracking information.
 
-class Camera;
-class CoordFrame;
-
-namespace gpu
-{
-
-class Filter;
-class View;
-class VolumeDescription;
-
-} // namespace gpu
-
-class Tracker
+class VolumeTransform
 {
 public:
 
-    Tracker();
-    ~Tracker();
-	void init();
-    void load(const Trial& trial);
-    Trial* trial() { return &trial_; }
-    void optimize(int frame, int dframe, int repeats = 1);
-    double minimizationFunc(const double* values) const;
-    std::vector<gpu::View*>& views() { return views_; }
-    const std::vector<gpu::View*>& views() const { return views_; }
-    gpu::View* view(size_t i) { return views_.at(i); }
-    const gpu::View* view(size_t i) const { return views_.at(i); }
+    // Loads a trial file
+    VolumeTransform();
+	~VolumeTransform();
 
-private:
-    void calculate_viewport(const CoordFrame& modelview, double* viewport) const;
+    KeyCurve x_curve;
+    KeyCurve y_curve;
+    KeyCurve z_curve;
+    KeyCurve yaw_curve;
+    KeyCurve pitch_curve;
+    KeyCurve roll_curve;
 
-    Trial trial_;
-    std::vector <gpu::VolumeDescription*> volumeDescription_;
-    std::vector<gpu::View*> views_;
-
-#ifdef WITH_CUDA
-	Buffer* rendered_drr_;
-	Buffer* rendered_rad_;
-#else
-	gpu::Buffer* rendered_drr_;
-	gpu::Buffer* rendered_rad_;
-#endif
+    CoordFrame volumeTrans; //FromWorldToVolume
+	CoordFrame volumeMatrix; //FromWorldToPivot
 };
 
-} // namespace XROMM
+} // namespace xromm
 
-#endif // XROMM_TRACKER_H
+#endif // XROMM_VOLUME_TRANSFORM

@@ -19,6 +19,7 @@ SET(libautoscoper_HEADERS
 	src/View.hpp
 	src/Volume.hpp
 	src/VolumeDescription.hpp
+	src/VolumeTransform.hpp
 )
 
 SET(libautoscoper_SOURCES
@@ -34,6 +35,7 @@ SET(libautoscoper_SOURCES
 	src/View.cpp
 	src/Volume.cpp
 	src/VolumeDescription.cpp
+	src/VolumeTransform.cpp
 )
 
 

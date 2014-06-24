@@ -401,6 +401,7 @@ Trial</string>
     <addaction name="actionExport_Tracking"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
+    <addaction name="actionSave_Test_Sequence"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
@@ -558,6 +559,11 @@ Trial</string>
   <action name="actionLayoutCameraViews">
    <property name="text">
     <string>Layout Camera Views</string>
+   </property>
+  </action>
+  <action name="actionSave_Test_Sequence">
+   <property name="text">
+    <string>Save Test Sequence</string>
    </property>
   </action>
  </widget>

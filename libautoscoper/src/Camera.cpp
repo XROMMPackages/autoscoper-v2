@@ -109,10 +109,10 @@ Camera::Camera(const string& mayacam) : mayacam_(mayacam)
     double z = csv_vals[3][2];
 
     // Default to 1024x1024
-    double image_width = csv_vals[4][1];
+    image_width = csv_vals[4][1];
     if (image_width == 0) image_width = 1024;
 
-    double image_height = csv_vals[4][2];
+    image_height = csv_vals[4][2];
     if (image_height == 0) image_height = 1024;
 
     // Calculate the cameras local coordinate frame

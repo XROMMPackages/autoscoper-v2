@@ -75,6 +75,10 @@ public:
 
     const double* viewport() const { return viewport_; }
 
+	double image_width;
+	double image_height;
+
+
 private:
 
     std::string mayacam_; // filename
