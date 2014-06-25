@@ -609,7 +609,7 @@ void AutoscoperMainWindow::save_tracking_results(QString filename)
 
 		const char* s = save_with_commas? "," :" ";
 
-		std::ofstream file(filename.toStdString().c_str(), ios::out);
+		std::ofstream file(filename.toAscii().constData(), ios::out);
 
 		file.precision(16);
 		file.setf(ios::fixed,ios::floatfield);
@@ -724,7 +724,7 @@ void AutoscoperMainWindow::load_tracking_results(QString filename)
 
 		char s = save_with_commas? ',': ' ';
 
-		std::ifstream file(filename.toStdString().c_str(), ios::in);
+		std::ifstream file(filename.toAscii().constData(), ios::in);
 
 		for(int j = 0; j < tracker->trial()->num_volumes ; j++ ){
 			tracker->trial()->getXCurve(j)->clear();
@@ -817,7 +817,7 @@ void AutoscoperMainWindow::openTrial(){
 	if ( cfg_fileName.isNull() == false )
     {
         try {
-			Trial * trial = new Trial(cfg_fileName.toStdString().c_str());
+			Trial * trial = new Trial(cfg_fileName.toAscii().constData());
 			tracker->load(*trial);
 			delete trial;
 
@@ -993,7 +993,7 @@ void AutoscoperMainWindow::on_actionSave_as_triggered(bool checked){
 	QString filename = get_filename(true);
     if (filename.compare("") != 0) {
         try {
-			trial_filename = filename.toStdString().c_str();
+			trial_filename = filename.toAscii().constData();
 			tracker->trial()->save(trial_filename);
             is_tracking_saved = true;
         }

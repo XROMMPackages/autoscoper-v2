@@ -41,5 +41,5 @@ void CameraViewWidget::draw(){
 }
 
 void CameraViewWidget::saveFrame(QString filename){
-	widget->glView->saveView(filename.toStdString().c_str());
+	widget->glView->saveView(filename.toAscii().constData());
 }

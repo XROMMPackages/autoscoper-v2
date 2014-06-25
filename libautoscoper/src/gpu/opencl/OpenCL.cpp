@@ -65,7 +65,7 @@ static Display* glx_display_;
 static cl_int err_;
 static cl_context context_;
 static cl_device_id devices_[10];
-static int count;
+static int count_;
 static cl_command_queue queue_;
 
 static const char* opencl_error(cl_int err)
@@ -605,9 +605,9 @@ cl_int opencl_global_context()
 			size_t size;
 			clGetGLContextInfoKHR(prop, CL_DEVICES_FOR_GL_CONTEXT_KHR, 10 * sizeof(cl_device_id), devices_, &size);
 			// Create a context using the supported devices
-			count = size / sizeof(cl_device_id);
+			count_ = size / sizeof(cl_device_id);
 			
-		context_ = clCreateContext(prop, count, devices_, NULL, NULL, &err_);
+		context_ = clCreateContext(prop, count_, devices_, NULL, NULL, &err_);
 		CHECK_CL
 #else
 #pragma OPENCL EXTENSION cl_khr_gl_sharing : enable
@@ -621,7 +621,7 @@ cl_int opencl_global_context()
 			0 };
 
 			count = size / sizeof(cl_device_id);
-			context_ = clCreateContext(prop, count, devices_, NULL, NULL, &err_);
+			context_ = clCreateContext(prop, count_, devices_, NULL, NULL, &err_);
 		CHECK_CL
 #endif
 
@@ -656,7 +656,7 @@ size_t Kernel::getLocalMemSize()
 	err_ = opencl_global_context();
 	CHECK_CL
 	cl_ulong s;
-	err_ = clGetDeviceInfo(devices_[count-1],
+	err_ = clGetDeviceInfo(devices_[count_-1],
 					CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &s, NULL);
 	CHECK_CL
 	return s;
@@ -667,7 +667,7 @@ size_t* Kernel::getMaxItems()
 	err_ = opencl_global_context();
 	CHECK_CL
 	size_t* s = new size_t[3];
-	err_ = clGetDeviceInfo(devices_[count-1],
+	err_ = clGetDeviceInfo(devices_[count_-1],
 					CL_DEVICE_MAX_WORK_ITEM_SIZES, 3*sizeof(s), s, NULL);
 	CHECK_CL
 	return s;
@@ -678,7 +678,7 @@ size_t Kernel::getMaxGroup()
 	err_ = opencl_global_context();
 	CHECK_CL
 	size_t s;
-	err_ = clGetDeviceInfo(devices_[count-1],
+	err_ = clGetDeviceInfo(devices_[count_-1],
 					CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &s, NULL);
 	CHECK_CL
 	return s;
