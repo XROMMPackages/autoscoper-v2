@@ -61,6 +61,9 @@ public:
 
     enum Tangent_type { SMOOTH };
 
+	enum Curve_type { X_CURVE, Y_CURVE, Z_CURVE, YAW_CURVE, PITCH_CURVE, ROLL_CURVE };
+
+
     // Typedefs
 
     typedef key_map::iterator iterator;
@@ -71,7 +74,11 @@ public:
 
     KeyCurve() {}
 
+	KeyCurve(Curve_type _type) {type = _type;}
+
     ~KeyCurve() {}
+
+	Curve_type type;
 
     // Removes all keyframes from the curve
 
