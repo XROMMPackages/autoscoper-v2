@@ -52,6 +52,10 @@
 #include "Volume.hpp"
 #include "VolumeTransform.hpp"
 
+enum rotationMode{ AXIS_ANGLE, QUATERNION, ROTATION_MATRIX};
+enum opt_alg{ DOWNHILL_SIMPLEX, LEVENBERG_MARQUARDT};
+enum comp_corr{ ADD, MULTIPLY };
+
 namespace xromm
 {
 // The trial class contains all of the state information for an autoscoper run.
@@ -94,6 +98,24 @@ public:
 
 	//CoordFrame * getVolumeTrans(int volumeID);
 	CoordFrame * getVolumeMatrix(int volumeID); // Pivot
+
+	// getters and setters for tracker modes
+	void setRotationMode(rotationMode r) {this->rotation_Mode = r;}
+	void setOptimizationAlgorithm(opt_alg o){this->opt_Algorithm = o;}
+	void setComp_Correlations(comp_corr c){this->comp_Correlations = c;}
+
+	rotationMode getRotationMode(){return this->rotation_Mode;}
+	opt_alg getOptAlg(){return this->opt_Algorithm;}
+	comp_corr getComputeCorrelations(){return this->comp_Correlations;}
+
+private:
+	std::string trial_name;
+
+	// tracker modifiers
+	rotationMode rotation_Mode;
+	opt_alg opt_Algorithm;
+	comp_corr comp_Correlations;
+
 };
 
 } // namespace xromm

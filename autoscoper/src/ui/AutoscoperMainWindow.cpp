@@ -9,6 +9,7 @@
 #include "ui/GLTracker.h"
 #include "ui/ImportExportTrackingOptionsDialog.h"
 #include "ui_ImportExportTrackingOptionsDialog.h"
+#include "ui/TrackingExtendedOptionsDialog.h"
 #include "ui/OpenCLPlatformSelectDialog.h"
 #include "Manip3D.hpp"
 
@@ -76,7 +77,7 @@ AutoscoperMainWindow::AutoscoperMainWindow(QWidget *parent) :
 	timeline_widget->setSharedGLContext(shared_glcontext);
 
 	tracking_dialog = NULL;
-
+	tracking_extended_dialog = NULL;
 	setupShortcuts();
 
 #ifndef WITH_CUDA
@@ -101,6 +102,10 @@ AutoscoperMainWindow::~AutoscoperMainWindow(){
 	if(tracking_dialog) {
 		tracking_dialog->hide();
 		delete tracking_dialog;
+	}
+	if(tracking_extended_dialog) {
+		tracking_extended_dialog->hide();
+		delete tracking_extended_dialog;
 	}
 
 	for (int i = 0 ; i < cameraViews.size();i++){
@@ -600,6 +605,7 @@ void AutoscoperMainWindow::save_tracking_results(QString filename)
 	diag->exec();
 
 	if(diag->result()){
+		cerr << "Saving" << endl;
 		bool save_as_matrix = diag->diag->radioButton_TypeMatrix->isChecked();
 		bool save_as_rows = diag->diag->radioButton_OrientationRow->isChecked();
 		bool save_with_commas = diag->diag->radioButton_SeperatorComma->isChecked();
@@ -1237,6 +1243,12 @@ void AutoscoperMainWindow::on_actionLayoutCameraViews_triggered(bool triggered){
     int rows = QInputDialog::getInteger(this, tr("Layput Camera Views"),
                                           tr("Number of Rows"),1,1,10,1, &ok);
     if (ok)relayoutCameras(rows);
+}
+
+void AutoscoperMainWindow::on_actionOpen_Extended_Tracking_Options_triggered(bool checked){
+	if(tracking_extended_dialog == NULL)tracking_extended_dialog = new TrackingExtendedOptionsDialog(this);
+
+	tracking_extended_dialog->show();
 }
 
 //Toolbar

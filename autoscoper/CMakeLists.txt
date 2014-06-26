@@ -39,10 +39,11 @@ SET(autoscoper_FORMS_HEADERS
 		src/ui/GLTracker.h
 		src/ui/Manip3D.hpp
 		src/core/History.hpp
-		src/ui/OpenCLPlatformSelectDialog.cpp
-		src/ui/CameraBox.cpp
+		src/ui/OpenCLPlatformSelectDialog.h
+		src/ui/CameraBox.h
 		src/ui/NewTrialDialog.h
 		src/ui/VolumeDockWidget.h
+		src/ui/TrackingExtendedOptionsDialog.h
 )
 SET(autoscoper_FORMS_SOURCES
      	src/ui/AutoscoperMainWindow.cpp
@@ -66,6 +67,7 @@ SET(autoscoper_FORMS_SOURCES
 		src/ui/CameraBox.cpp
 		src/ui/NewTrialDialog.cpp
 		src/ui/VolumeDockWidget.cpp
+		src/ui/TrackingExtendedOptionsDialog.cpp
 )
 
 #QT DESIGNER UI FILES
@@ -80,6 +82,7 @@ SET(autoscoper_FORMS
 		src/ui/ui-files/CameraBox.ui
 		src/ui/ui-files/NewTrialDialog.ui
 		src/ui/ui-files/VolumeDockWidget.ui
+		src/ui/ui-files/TrackingExtendedOptionsDialog.ui
 )
 
 QT4_WRAP_UI(autoscoper_FORMS_HEADERS_GEN ${autoscoper_FORMS})

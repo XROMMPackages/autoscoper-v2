@@ -25,6 +25,7 @@ class TrackingOptionsDialog;
 class QGLContext;
 class Manip3D;
 struct GraphData;
+class TrackingExtendedOptionsDialog;
 
 class AutoscoperMainWindow : public QMainWindow{
 
@@ -60,6 +61,7 @@ class AutoscoperMainWindow : public QMainWindow{
 		VolumeDockWidget* volumes_widget;
 		TimelineDockWidget* timeline_widget;
 		TrackingOptionsDialog* tracking_dialog;
+		TrackingExtendedOptionsDialog* tracking_extended_dialog;
 
 		std::vector <CameraViewWidget * > cameraViews;
 		void relayoutCameras(int rows);
@@ -138,6 +140,7 @@ class AutoscoperMainWindow : public QMainWindow{
 
 		//View
 		void on_actionLayoutCameraViews_triggered(bool checked);
+		void on_actionOpen_Extended_Tracking_Options_triggered(bool checked);
 
 		//Toolbar
 		void on_toolButtonOpenTrial_clicked();

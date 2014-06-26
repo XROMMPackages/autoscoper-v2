@@ -84,7 +84,7 @@ public:
     void load(const Trial& trial);
     Trial* trial() { return &trial_; }
     void optimize(int frame, int dframe, int repeats = 1);
-    double minimizationFunc(const double* values) const;
+    double minimizationFunc(const double* values);
     std::vector<gpu::View*>& views() { return views_; }
     const std::vector<gpu::View*>& views() const { return views_; }
     gpu::View* view(size_t i) { return views_.at(i); }

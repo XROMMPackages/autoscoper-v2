@@ -215,6 +215,8 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
                                           trial_.videos.at(i).bps());
     }
 
+	///for loop over all volunes
+
     int framesBehind = (dFrame > 0)?
                        (int)trial_.frame:
                        (int)trial_.num_frames-trial_.frame-1;
@@ -252,6 +254,8 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
         trial_.getRollCurve(-1)->insert(trial_.frame,  (*trial_.getRollCurve(-1))(trial_.frame-dFrame));
     }
 
+	///end for loop over all volunes
+
     int totalIter = 0;
     for (int j = 0; j < repeats; j++) {
 
@@ -259,6 +263,14 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
         // the independant variables of the function we are optimizing over
         // are relative to the initial guess, the same vertices can be used
         // to form the initial simplex for every frame.
+
+		//we need more parameters
+		// 1 volume - > 7 (check trial->volumes)
+		// 2 volume - > 7 + 6 = 13
+		// 3 volume - > 7 + 6 + 6 = 19
+			// set ndim accordingly (6 - 12 -18)
+
+		//go more
         for (int i = 0; i < 7; ++i) {
             P[i+1][1] = (i == 1)? trial_.offsets[0]: 0.0;
             P[i+1][2] = (i == 2)? trial_.offsets[1]: 0.0;
@@ -268,8 +280,26 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
             P[i+1][6] = (i == 6)? trial_.offsets[5]: 0.0;
         }
 
+		//fill initial vectors
+		 /*for (int i = 0; i < NDIM + 1; ++i) {
+            for (int j = 1; j < NDIM + 1; ++j) {
+				P[i+1][j] = (i == j)? trial_.offsets[j-1 mod object]: 0.0;
+			}
+
+			for (int j = 0; j < Nummvol; ++j) {
+				P[i+1][j* 6 + 1] = (i == j* 6 + 1)? trial_.offsets[0]: 0.0;
+				P[i+1][j* 6 + 2] = (i == j* 6 + 2)? trial_.offsets[1]: 0.0;
+				P[i+1][j* 6 + 3] = (i == j* 6 + 3)? trial_.offsets[2]: 0.0;
+				P[i+1][j* 6 + 4] = (i == j* 6 + 4)? trial_.offsets[3]: 0.0;
+				P[i+1][j* 6 + 5] = (i == j* 6 + 5)? trial_.offsets[4]: 0.0;
+				P[i+1][j* 6 + 6] = (i == j* 6 + 6)? trial_.offsets[5]: 0.0;
+			}
+        }*/
+
         // Determine the function values at the vertices of the initial
         // simplex
+
+		//for over numdims
         for (int i = 0; i < 7; ++i) {
             Y[i+1] = FUNC(P[i+1]);
         }
@@ -277,7 +307,17 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
         // Optimize the frame
         ITER = 0;
 
-        AMOEBA(P, Y, NDIM, FTOL, &ITER);
+        if (this->trial()->getOptAlg() == DOWNHILL_SIMPLEX){
+			AMOEBA(P, Y, NDIM, FTOL, &ITER);
+		} else if (this->trial()->getOptAlg() == LEVENBERG_MARQUARDT){
+			// call to levenberg marquardt optimization
+		}
+
+		//set values accordingly for all volumes
+		// start loop for all volumes
+		//for i = numvol
+		// P[1][i *6 +1] = solution for i-volune
+		// and getXCurve(i)
 
         double xyzypr[6] = { (*trial_.getXCurve(-1))(trial_.frame),
                              (*trial_.getYCurve(-1))(trial_.frame),
@@ -285,17 +325,32 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
                              (*trial_.getYawCurve(-1))(trial_.frame),
                              (*trial_.getPitchCurve(-1))(trial_.frame),
                              (*trial_.getRollCurve(-1))(trial_.frame) };
+
         CoordFrame xcframe = CoordFrame::from_xyzypr(xyzypr);
 
-        CoordFrame manip = xcframe* (trial_.getVolumeMatrix(-1) )->inverse();
-        manip.rotate(manip.rotation()+6, (P[1]+1)[3]);
-        manip.rotate(manip.rotation()+3, (P[1]+1)[4]);
-        manip.rotate(manip.rotation()+0, (P[1]+1)[5]);
-        manip.translate(P[1]+1);
+		CoordFrame manip;
 
-        xcframe = manip* *(trial_.getVolumeMatrix(-1) );
-        xcframe.to_xyzypr(xyzypr);
+		// initiate rotation based on trial specs
+		if (this->trial()->getRotationMode() == AXIS_ANGLE)
+			manip = CoordFrame::from_xyzAxis_angle(P[1]+1);
+		else if (this->trial()->getRotationMode() == QUATERNION)
+			manip = CoordFrame::from_xyzijk(P[1]+1);
+		else if (this->trial()->getRotationMode() == ROTATION_MATRIX){
+			manip = xcframe* (trial_.getVolumeMatrix(-1) )->inverse();
+			manip.rotate(manip.rotation()+6, (P[1]+1)[3]);
+			manip.rotate(manip.rotation()+3, (P[1]+1)[4]);
+			manip.rotate(manip.rotation()+0, (P[1]+1)[5]);
+			manip.translate(P[1]+1);
+		}
 
+		if (this->trial()->getRotationMode() == ROTATION_MATRIX){
+			xcframe = manip* *(trial_.getVolumeMatrix(-1) );
+		} else {
+			xcframe = xcframe * trial_.getVolumeMatrix(-1)->inverse() * manip * *trial_.getVolumeMatrix(-1);
+		}
+
+		xcframe.to_xyzypr(xyzypr);
+		
         trial_.getXCurve(-1)->insert(trial_.frame,xyzypr[0]);
         trial_.getYCurve(-1)->insert(trial_.frame,xyzypr[1]);
         trial_.getZCurve(-1)->insert(trial_.frame,xyzypr[2]);
@@ -303,6 +358,7 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
         trial_.getPitchCurve(-1)->insert(trial_.frame,xyzypr[4]);
         trial_.getRollCurve(-1)->insert(trial_.frame,xyzypr[5]);
 
+		// end loop
         totalIter += ITER;
     }
 
@@ -310,10 +366,19 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
          << " done in " << totalIter << " total iterations" << endl;
 }
 
-double Tracker::minimizationFunc(const double* values) const
+double Tracker::minimizationFunc(const double* values)
 {
-    // Construct a coordinate frame from the given values
+	// Forall Viewsa
 
+
+
+
+	// End Forall Views
+	
+
+    // Construct a coordinate frame from the given values
+	//for all objects
+	//same as above
     double xyzypr[6] = { (*(const_cast<Trial&>(trial_)).getXCurve(-1))(trial_.frame),
                          (*(const_cast<Trial&>(trial_)).getYCurve(-1))(trial_.frame),
                          (*(const_cast<Trial&>(trial_)).getZCurve(-1))(trial_.frame),
@@ -321,26 +386,46 @@ double Tracker::minimizationFunc(const double* values) const
                          (*(const_cast<Trial&>(trial_)).getPitchCurve(-1))(trial_.frame),
                          (*(const_cast<Trial&>(trial_)).getRollCurve(-1))(trial_.frame) };
     CoordFrame xcframe = CoordFrame::from_xyzypr(xyzypr);
+	CoordFrame manip;
 
-    CoordFrame manip = xcframe* (const_cast<Trial&>(trial_)).getVolumeMatrix(-1)->inverse();
-    manip.rotate(manip.rotation()+6, values[3]);
-    manip.rotate(manip.rotation()+3, values[4]);
-    manip.rotate(manip.rotation()+0, values[5]);
-    manip.translate(values);
-    xcframe = manip* *((const_cast<Trial&>(trial_)).getVolumeMatrix(-1));
+	if (this->trial()->getRotationMode() == AXIS_ANGLE){
+		manip = CoordFrame::from_xyzAxis_angle(values);
+	} else if (this->trial()->getRotationMode() == QUATERNION){
+		manip = CoordFrame::from_xyzijk(values);
+	} else if (this->trial()->getRotationMode() == ROTATION_MATRIX){
+		//manip = CoordFrame::from_xyzypr(values);
+		manip = xcframe* (const_cast<Trial&>(trial_)).getVolumeMatrix(-1)->inverse();
+
+		manip.rotate(manip.rotation()+6, values[3]);
+		manip.rotate(manip.rotation()+3, values[4]);
+		manip.rotate(manip.rotation()+0, values[5]);
+		manip.translate(values);
+
+		xcframe = manip* *((const_cast<Trial&>(trial_)).getVolumeMatrix(-1));
+	}
+
+	xcframe = xcframe * trial_.getVolumeMatrix(-1)->inverse() * manip * *trial_.getVolumeMatrix(-1);
 
     double* correlations = new double[views_.size()];
+	
     for (unsigned int i = 0; i < views_.size(); ++i) {
 
+		// idx = volumeBased
 		int idx = 0;
         // Set the modelview matrix for DRR rendering
         CoordFrame modelview = views_[i]->camera()->coord_frame().inverse()*xcframe;
         double imv[16]; modelview.inverse().to_matrix_row_order(imv);
         views_[i]->drrRenderer(idx)->setInvModelView(imv);
+		//views_[i]->drrRenderer(idx)->setModelView(modelview);
+		//end for all views
+	//end all objects
 
+	//for all objects
+		//for all views
         // Calculate the viewport surrounding the volume
         double viewport[4];
         this->calculate_viewport(modelview,viewport);
+		////this->calculate_viewport(views_[i]->drrRenderer(idx)->getModelView(),viewport);
 
         // Calculate the size of the image to render
         unsigned render_width = viewport[2] * trial_.render_width / views_[i]->camera()->viewport()[2];
@@ -353,7 +438,8 @@ double Tracker::minimizationFunc(const double* values) const
                                                viewport[2],viewport[3]);
 
         // Render the DRR and Radiograph
-        views_[i]->renderDrr(rendered_drr_,render_width,render_height);
+		//if(all objects or single object)
+		views_[i]->renderDrr(rendered_drr_,render_width,render_height);
         views_[i]->renderRad(rendered_rad_,render_width,render_height);
 
         // Calculate the correlation
@@ -365,10 +451,13 @@ double Tracker::minimizationFunc(const double* values) const
         save_debug_image(rendered_rad_,render_width,render_height);
 #endif
     }
-
     double correlation = correlations[0];
     for (unsigned int i = 1; i < trial_.cameras.size(); ++i) {
-        correlation *= correlations[i];
+		if(this->trial()->getComputeCorrelations() == ADD){ 
+			correlation += correlations[i];
+		} else if (this->trial()->getComputeCorrelations() == MULTIPLY) {
+			correlation *= correlations[i];
+		}
     }
 	delete correlations;
 
@@ -381,10 +470,10 @@ Tracker::calculate_viewport(const CoordFrame& modelview,double* viewport) const
     // corners after they have been projected onto the view plane
     double min_max[4] = {1.0,1.0,-1.0,-1.0};
     double corners[24] = {0,0,-1,0,0,0, 0,1,-1,0,1,0, 1,0,-1,1,0,0,1,1,-1,1,1,0};
-
-	int idx = 0;
-
+	
     for (int j = 0; j < 8; j++) {
+
+		int idx = 0;
 
         // Calculate the loaction of the corner in object space
         corners[3*j+0] = (corners[3*j+0]-volumeDescription_[idx]->invTrans()[0])/volumeDescription_[idx]->invScale()[0];

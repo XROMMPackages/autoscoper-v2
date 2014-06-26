@@ -65,6 +65,10 @@ public:
 
     static CoordFrame from_xyzypr(const double* xyzypr);
 
+	static CoordFrame from_xyzijk(const double* xyzijk);
+
+	static CoordFrame from_xyzAxis_angle(const double* xyzijk);
+
     void to_xyzypr(double* xyzypr) const;
 
     static CoordFrame from_matrix(const double* m);
@@ -78,6 +82,8 @@ public:
     void translate(const double* v);
 
     void rotate(const double* v, double angle);
+
+	void rotateQuat(double i, double j, double k);
 
     CoordFrame inverse() const;
 
