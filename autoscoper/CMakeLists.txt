@@ -100,6 +100,13 @@ ELSE (NOT BUILD_WITH_CUDA)
 	)
 ENDIF()
 
+IF(BUILD_WITH_CMINPACK)
+find_package( CMinpack REQUIRED )
+include_directories(${CMINPACK_INCLUDE_DIRS} )
+SET(OPT_LIBRARIES ${OPT_LIBRARIES} ${CMINPACK_LIBRARIES})
+add_definitions(-DCMINPACK_NO_DLL)
+ENDIF()
+
 include_directories (${GLEW_INCLUDE_DIR} ${GLUT_INCLUDE_DIR} ../math ../libautoscoper/src) 
 
 link_directories (${LIBRARY_OUTPUT_PATH}) 
@@ -111,4 +118,4 @@ add_executable (autoscoper  ${autoscoper_SOURCES} ${autoscoper_HEADERS}
 		${autoscoper_RESOURCES_RCC} 
 		src/ui/autoscoper_resource.qrc) 
 
-TARGET_LINK_LIBRARIES(autoscoper libautoscoper ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} ${GLUT_LIBRARIES} ${GPU_LIBRARIES} ${TIFFIO_LIBRARIES} ${QT_LIBRARIES})
+TARGET_LINK_LIBRARIES(autoscoper libautoscoper ${OPT_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} ${GLUT_LIBRARIES} ${GPU_LIBRARIES} ${TIFFIO_LIBRARIES} ${QT_LIBRARIES} )
