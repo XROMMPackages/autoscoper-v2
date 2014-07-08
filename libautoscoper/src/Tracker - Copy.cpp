@@ -67,7 +67,6 @@
 #include "Camera.hpp"
 #include "CoordFrame.hpp"
 
-
 using namespace std;
 
 static bool firstRun = true;
@@ -198,7 +197,7 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
         return;
     }
 
-    int NDIM =  6 * trial_.num_volumes;       // Number of dimensions to optimize over.
+    int NDIM = trial_.num_volumes * 6;       // Number of dimensions to optimize over.
     double FTOL = 0.01; // Tolerance for the optimization.
     MAT P;              // Matrix of points to initialize the routine.
     double Y[MP];       // The values of the minimization function at the
@@ -258,6 +257,15 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
     int totalIter = 0;
     for (int j = 0; j < repeats; j++) {
 
+        for (int i = 0; i < trial_.num_volumes; ++i) {
+            P[i+1][1] = (i == 1)? trial_.offsets[0]: 0.0;
+            P[i+1][2] = (i == 2)? trial_.offsets[1]: 0.0;
+            P[i+1][3] = (i == 3)? trial_.offsets[2]: 0.0;
+            P[i+1][4] = (i == 4)? trial_.offsets[3]: 0.0;
+            P[i+1][5] = (i == 5)? trial_.offsets[4]: 0.0;
+            P[i+1][6] = (i == 6)? trial_.offsets[5]: 0.0;
+        }
+
 		//fill initial vectors
 		for (int i = 0; i < NDIM + 1; ++i) {
            for (int j = 1; j < NDIM + 1; ++j) {
@@ -265,8 +273,10 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
 		   }
 		}
 
+
         // Determine the function values at the vertices of the initial
         // simplex
+
 		for (int i = 0; i < NDIM + 1; ++i) {
 			Y[i+1] = FUNC(P[i+1]);
 		}
@@ -297,8 +307,8 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
 				manip = CoordFrame::from_xyzAxis_angle(&P[1][1  + i * 6]);
 			else if (this->trial()->getRotationMode() == QUATERNION)
 				manip = CoordFrame::from_xyzijk(&P[1][1  + i * 6]);
-			else if (this->trial()->getRotationMode() == EULER_ANGLE){
-				manip = CoordFrame::from_xyzypr(&P[1][1  + i * 6]);
+			else if (this->trial()->getRotationMode() == ROTATION_MATRIX){
+				manip = CoordFrame::from_xyzypr(&P[1][1  + i * 6]); // P[1][1] - P[1][7]	
 			}
 
 			xcframe = xcframe * trial_.getVolumeMatrix(i)->inverse() * manip * *trial_.getVolumeMatrix(i);
@@ -356,53 +366,29 @@ double Tracker::minimizationFunc(const double* values)
 	}
 	
 	double **object_correlations = new double*[trial_.num_volumes];
-	
 	for (int i = 0; i < trial_.num_volumes; i++)
 		object_correlations[i] = new double[views_.size()];
 	
-	int rVolumes = (this->rMode == C)? 1 : trial_.num_volumes;
-
 	for (unsigned int j = 0; j < views_.size(); ++j) {
-		for (int i = 0; i < rVolumes; i++){
+		for (int i = 0; i < /*trial_.num_volumes*/; i++){
 			// Calculate the viewport surrounding the volume
 			double viewport[4];
-			if (this->rMode == C){
-				double min_max[4] = {1.0,1.0,-1.0,-1.0};
-				for (int c = 0; c < trial_.num_volumes; c++){
-					this->calculate_viewport(views_[j]->drrRenderer(c)->getModelView(),viewport, c);
-					//compare min_max with viewport
-					if (min_max[0] > viewport[0])
-						min_max[0] = viewport[0];
-					if (min_max[1] > viewport[1])
-						min_max[1] = viewport[1];
-					if (min_max[2] < viewport[0] + viewport[2])
-						min_max[2] = viewport[0] + viewport[2];
-					if (min_max[3] < viewport[1] + viewport[3])
-						min_max[3] = viewport[1] + viewport[3];
-				}
-				//set viewport from min_max
-				viewport[0] = min_max[0];
-				viewport[1] = min_max[1];
-				viewport[2] = min_max[2]-min_max[0];
-				viewport[3] = min_max[3]-min_max[1];
-			} else 
-				this->calculate_viewport(views_[j]->drrRenderer(i)->getModelView(),viewport, i);
+			this->calculate_viewport(views_[j]->drrRenderer(i)->getModelView(),viewport, i);
+			////this->calculate_viewport(views_[i]->drrRenderer(idx)->getModelView(),viewport);
 
 			// Calculate the size of the image to render
 			unsigned render_width = viewport[2] * trial_.render_width / views_[j]->camera()->viewport()[2];
 			unsigned render_height = viewport[3] * trial_.render_height / views_[j]->camera()->viewport()[3];
 
-			if (this->rMode == A){
-				// Render the DRR and Radiograph
-				views_[j]->drrRenderer(i)->setViewport(viewport[0],viewport[1],viewport[2],viewport[3]);
-				views_[j]->renderDrr(rendered_drr_,render_width,render_height,i);
-			} else if (this->rMode == B || this->rMode == C){
-				for (int v = 0; v < trial_.num_volumes; v++)
-					views_[j]->drrRenderer(v)->setViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
-				views_[j]->renderDrr(rendered_drr_,render_width, render_height);
-			}
+			// Set the viewports
+			views_[j]->drrRenderer(i)->setViewport(viewport[0],viewport[1],
+												viewport[2],viewport[3]);
+			views_[j]->radRenderer()->set_viewport(viewport[0],viewport[1],
+												viewport[2],viewport[3]);
 
-			views_[j]->radRenderer()->set_viewport(viewport[0],viewport[1],viewport[2],viewport[3]);
+			// Render the DRR and Radiograph
+			//if(all objects or single object)
+			views_[j]->renderDrr(rendered_drr_,render_width,render_height,i);
 			views_[j]->renderRad(rendered_rad_,render_width,render_height);
 
 			// Calculate the correlation
@@ -415,24 +401,16 @@ double Tracker::minimizationFunc(const double* values)
 #endif
 		}
 	}
-	double *final_correlations = new double[rVolumes];
-	for (unsigned int j = 0; j <rVolumes; j++){
-		final_correlations[j] = 0.0 ;
-		for (unsigned int i = 0; i < trial_.cameras.size(); ++i)
-			if (this->trial()->getComputeCorrelations() == ADD)
-				final_correlations[j] += object_correlations[j][i];
-			else if (this->trial()->getComputeCorrelations() == MULTIPLY)
-				final_correlations[j] *= object_correlations[j][i];
-	}
-	
-	double final_score = (this->trial()->getComputeCorrelations() == ADD) ? 0.0 : 1.0;
-	for (unsigned int i = 0; i <rVolumes; i++)
-		if (this->trial()->getComputeCorrelations() == ADD)
-			final_score += final_correlations[i];
-		else if (this->trial()->getComputeCorrelations() == MULTIPLY)
-			final_score *= final_correlations[i];
+	double *final_correlations = new double[views_.size()];
+	for (unsigned int j = 0; j < views_.size(); j++)
+		for (unsigned int i = 1; i < trial_.cameras.size(); ++i)
+				final_correlations[j] += object_correlations[j][i];	
 
-	for (int i = 0; i < rVolumes; i++)
+	double final_score = 0.0;
+	for (unsigned int i = 0; i < views_.size(); i++)
+		final_score += final_correlations[i];
+
+	for (int i = 0; i < views_.size(); i++)
 		delete[] object_correlations[i];
 
 	delete[] object_correlations;

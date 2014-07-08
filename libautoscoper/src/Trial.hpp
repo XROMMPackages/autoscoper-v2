@@ -52,7 +52,7 @@
 #include "Volume.hpp"
 #include "VolumeTransform.hpp"
 
-enum rotationMode{ AXIS_ANGLE, QUATERNION, ROTATION_MATRIX};
+enum rotationMode{ AXIS_ANGLE, QUATERNION, EULER_ANGLE };
 enum opt_alg{ DOWNHILL_SIMPLEX, LEVENBERG_MARQUARDT};
 enum comp_corr{ ADD, MULTIPLY };
 

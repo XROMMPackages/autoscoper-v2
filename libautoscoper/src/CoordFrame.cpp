@@ -221,11 +221,15 @@ void CoordFrame::orient(const double* rotation,
 void CoordFrame::rotateQuat(double x, double y, double z){
 
 	double w = sqrt(1 - (sqr(x) + sqr(y) + sqr(z)));
-
-	double angle = 2 * acos(w);
-	double x_a = x / sqrt(1 - sqr(w));
-	double y_a = y /sqrt(1 - sqr(w));
-	double z_a = z /sqrt(1-sqr(w));
+	double x_a, y_a, z_a, angle;
+	if (w != 1){
+		angle = 2 * acos(w);
+		x_a = x / sqrt(1 - sqr(w));
+		y_a = y /sqrt(1 - sqr(w));
+		z_a = z /sqrt(1-sqr(w));
+	} else  {
+		x_a = y_a = z_a, angle = 0;
+	}
 
 	double c = cos(angle);
 	double s = sin(angle);

@@ -101,7 +101,7 @@ public:
     void renderRad(Buffer* buffer, unsigned int width, unsigned int height);
     void renderRad(unsigned int pbo, unsigned int width, unsigned int height);
 
-    void renderDrr(Buffer* buffer, unsigned int width, unsigned int height);
+    void renderDrr(Buffer* buffer, unsigned width, unsigned height, int volumeid = -1);
     void renderDrr(unsigned int  pbo, unsigned int width, unsigned int height);
 
     void render(GLBuffer* buffer, unsigned int width, unsigned int height);

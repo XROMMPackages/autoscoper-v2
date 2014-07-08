@@ -58,6 +58,7 @@
 #endif
 #include "Trial.hpp"
 
+enum renderMode { A, B, C };
 
 namespace xromm
 {
@@ -89,10 +90,12 @@ public:
     const std::vector<gpu::View*>& views() const { return views_; }
     gpu::View* view(size_t i) { return views_.at(i); }
     const gpu::View* view(size_t i) const { return views_.at(i); }
+	void setRenderMode(renderMode r) {this->rMode = r;}
+	renderMode getRenderMode() {return this->rMode;}
 
 private:
-    void calculate_viewport(const CoordFrame& modelview, double* viewport) const;
-
+    void calculate_viewport(const CoordFrame& modelview, double* viewport, int volumeId) const;
+	renderMode rMode;
     Trial trial_;
     std::vector <gpu::VolumeDescription*> volumeDescription_;
     std::vector<gpu::View*> views_;

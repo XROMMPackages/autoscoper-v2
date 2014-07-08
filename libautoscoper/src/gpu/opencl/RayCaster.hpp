@@ -46,6 +46,7 @@
 
 #include "VolumeDescription.hpp"
 #include "OpenCL.hpp"
+#include "CoordFrame.hpp"
 
 namespace xromm { namespace gpu {
 
@@ -57,6 +58,8 @@ public:
 
     void setVolume(VolumeDescription& volume);
     void setInvModelView(const double* invModelView);
+	void setModelView(const CoordFrame &modelView) {modelView_ = modelView;}
+	CoordFrame getModelView() {return this->modelView_;}
     void setViewport(float x, float y, float width, float height);
     void render(const Buffer* buffer, unsigned width, unsigned height);
 
@@ -103,6 +106,9 @@ public:
 private:
     VolumeDescription* volumeDescription_;
     float invModelView_[16];
+	//double modelView_[16];
+	CoordFrame modelView_;
+
     float viewport_[4];
 	Buffer* b_viewport_;
     float sampleDistance_;

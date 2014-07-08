@@ -7,6 +7,7 @@
 #include "Tracker.hpp"
 #include "Trial.hpp"
 #include "Manip3D.hpp"
+#include <ctime>
 
 TrackingOptionsDialog::TrackingOptionsDialog(QWidget *parent) :
 												QDialog(parent),
@@ -36,6 +37,7 @@ void TrackingOptionsDialog::frame_optimize()
 
         return;
     }
+	double begin = (double) clock(); // start time
 
     while (frame != to_frame+d_frame && !doExit) {
 
@@ -66,6 +68,10 @@ void TrackingOptionsDialog::frame_optimize()
 	QApplication::processEvents();
     diag->progressBar->setValue(0);
 	this->close();
+
+	double end = (double) clock(); // end time
+	double elapsed = (end - begin) / ((double) CLOCKS_PER_SEC);
+	fprintf(stderr, "\nTime Elapsed During Optimization: %f", elapsed);
 }
 
 void TrackingOptionsDialog::retrack(){
@@ -115,7 +121,7 @@ void TrackingOptionsDialog::on_pushButton_OK_clicked(bool checked){
 			mainwindow->getTracker()->trial()->getPitchCurve(-1)->insert(from_frame,xyzypr[4]);
 			mainwindow->getTracker()->trial()->getRollCurve(-1)->insert(from_frame,xyzypr[5]);
 		}
-
+	fprintf(stderr, "do we get here?");
 		if (!frame_optimizing) {
 			if (reverse) {
 				frame = to_frame;

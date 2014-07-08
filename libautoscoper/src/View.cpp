@@ -195,8 +195,7 @@ View::renderRad(unsigned int pbo, unsigned width, unsigned height)
 }
 
 void
-View::renderDrr(Buffer* buffer, unsigned width, unsigned height)
-//View::renderDrr(Buffer* buffer, unsigned width, unsigned height, int volumeid = -1)
+View::renderDrr(Buffer* buffer, unsigned width, unsigned height, int volumeid)
 {
 #ifdef WITH_CUDA
 	init();
@@ -215,17 +214,17 @@ View::renderDrr(Buffer* buffer, unsigned width, unsigned height)
     filter(drrFilters_, drrBuffer_, buffer, width, height);
 #else
 	init(width, height);
-	//if(volumeid == -1){
+	if(volumeid == -1){
 		drrBufferMerged_->fill(0x00);
 		for(int i = 0; i < drrRenderer_.size(); i++){
 			drrRenderer_[i]->render(drrBuffer_[i], width, height);
 			merge(drrBufferMerged_,drrBuffer_[i],drrBufferMerged_,width,height);
 		}
 		filter(drrFilters_, drrBufferMerged_, buffer, width, height);
-	//}else{
-	//	drrRenderer_[volumedid]->render(drrBuffer_[volumedid], width, height);
-    //  filter(drrFilters_, drrBuffer_[volumedid], buffer, width, height);
-	//}
+	} else{
+		drrRenderer_[volumeid]->render(drrBuffer_[volumeid], width, height);
+		filter(drrFilters_, drrBuffer_[volumeid], buffer, width, height);
+	}
 
 #endif
 }

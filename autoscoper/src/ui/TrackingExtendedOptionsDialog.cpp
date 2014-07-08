@@ -4,8 +4,7 @@
 
 #include "Tracker.hpp"
 #include "Trial.hpp"
-
-
+#include <QTimer>
 TrackingExtendedOptionsDialog::TrackingExtendedOptionsDialog(QWidget *parent) :
 												QDialog(parent),
 												diag(new Ui::TrackingExtendedOptionsDialog){
@@ -19,13 +18,13 @@ TrackingExtendedOptionsDialog::~TrackingExtendedOptionsDialog(){
 void TrackingExtendedOptionsDialog::on_pushButtonApply_clicked(bool checked){	
 	AutoscoperMainWindow *mainwindow  = dynamic_cast <AutoscoperMainWindow *> ( parent());
 	Trial * tr = NULL;
-
 	if(mainwindow){
 		
 		// Rotation Represenation
 		if(diag->radioButtonYPR->isChecked()){
-			mainwindow->getTracker()->trial()->setRotationMode(ROTATION_MATRIX);
+			mainwindow->getTracker()->trial()->setRotationMode(EULER_ANGLE);
 		}else if(diag->radioButtonQuat->isChecked()){
+			fprintf(stderr, "quaternion is selected");
 			mainwindow->getTracker()->trial()->setRotationMode(QUATERNION);
 		}else if(diag->radioButtonAxisAngle->isChecked()){
 			mainwindow->getTracker()->trial()->setRotationMode(AXIS_ANGLE);
@@ -44,6 +43,16 @@ void TrackingExtendedOptionsDialog::on_pushButtonApply_clicked(bool checked){
 		} else if (diag->multiplyCorrelations->isChecked()){
 			mainwindow->getTracker()->trial()->setComp_Correlations(MULTIPLY);
 		}
+
+		if (diag->renderOptionA->isChecked()){
+			mainwindow->getTracker()->setRenderMode(A);
+		} else if (diag->renderOptionB->isChecked()){
+			mainwindow->getTracker()->setRenderMode(B);
+		} else if (diag->renderOptionC->isChecked()){
+			mainwindow->getTracker()->setRenderMode(C);
+		}
+		// Render Modes
+
 	}
 	this->accept();
 }
