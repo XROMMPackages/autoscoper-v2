@@ -402,6 +402,9 @@ Trial</string>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
     <addaction name="actionSave_Test_Sequence"/>
+    <addaction name="separator"/>
+    <addaction name="actionSaveForBatch"/>
+    <addaction name="actionLoad_xml_batch"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
@@ -573,6 +576,16 @@ Trial</string>
      <string>Open Extended Tracking Options</string>
    </property>
  </action>
+  <action name="actionSaveForBatch">
+   <property name="text">
+    <string>save xml for batch</string>
+   </property>
+  </action>
+  <action name="actionLoad_xml_batch">
+   <property name="text">
+    <string>load xml batch</string>
+   </property>
+  </action>
  </widget>
  <resources>
   <include location="../autoscoper_resource.qrc"/>

@@ -65,6 +65,10 @@ Trial::Trial(const string& filename)
         return;
     }
 
+	this->rotation_Mode = AXIS_ANGLE;
+	this->opt_Algorithm = DOWNHILL_SIMPLEX;
+	this->comp_Correlations = ADD;
+
     // Load the config file.
     ifstream file(filename.c_str());
     if (file.is_open() == false) {

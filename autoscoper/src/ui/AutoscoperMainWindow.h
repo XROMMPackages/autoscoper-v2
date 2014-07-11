@@ -32,7 +32,7 @@ class AutoscoperMainWindow : public QMainWindow{
 	Q_OBJECT
 
 	public:
-		explicit AutoscoperMainWindow(QWidget *parent = 0);
+		explicit AutoscoperMainWindow(bool skipGpuDevice = false, QWidget *parent = 0);
 		~AutoscoperMainWindow();
 
 		Tracker * getTracker(){return tracker;};
@@ -54,7 +54,10 @@ class AutoscoperMainWindow : public QMainWindow{
 		QString get_filename(bool save = true, QString type = "");
 		void update_graph_min_max(GraphData* graph, int frame = -1);
 		void frame_changed();
+		void runBatch(QString batchfile,bool saveData = false);
 		void volume_changed();
+		GLTracker * gltracker;
+		
 	private:
 		Ui::AutoscoperMainWindow *ui;
 		FilterDockWidget* filters_widget;
@@ -74,7 +77,6 @@ class AutoscoperMainWindow : public QMainWindow{
 
 		//Tracker
 		Tracker * tracker;
-		GLTracker * gltracker;
 		const QGLContext* shared_glcontext;
 
 		//Manipulator
@@ -90,6 +92,7 @@ class AutoscoperMainWindow : public QMainWindow{
 		//Sets Up all the views;
 		void setupUI();
 		void openTrial();
+		void openTrial(QString filename);
 		void newTrial();
 
 		//Shortcuts
@@ -104,8 +107,10 @@ class AutoscoperMainWindow : public QMainWindow{
 		
 		void save_tracking_prompt();
 		void save_trial_prompt();
+		void save_tracking_results(QString filename, bool save_as_matrix,bool save_as_rows,bool save_with_commas,bool convert_to_cm,bool convert_to_rad,bool interpolate);
 		void save_tracking_results(QString filename);
 		void load_tracking_results(QString filename);
+		void load_tracking_results(QString filename, bool save_as_matrix,bool save_as_rows,bool save_with_commas,bool convert_to_cm,bool convert_to_rad,bool interpolate);
 	protected:
 		void closeEvent(QCloseEvent *event);
 
@@ -120,6 +125,8 @@ class AutoscoperMainWindow : public QMainWindow{
 		void on_actionExport_Tracking_triggered(bool checked);
 		void on_actionQuit_triggered(bool checked);
 		void on_actionSave_Test_Sequence_triggered(bool checked);
+		void on_actionSaveForBatch_triggered(bool checked);
+		void on_actionLoad_xml_batch_triggered(bool checked);
 
 		//Edit
 		void on_actionUndo_triggered(bool checked);

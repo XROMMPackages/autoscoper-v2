@@ -10,6 +10,7 @@
 #include "ui/ImportExportTrackingOptionsDialog.h"
 #include "ui_ImportExportTrackingOptionsDialog.h"
 #include "ui/TrackingExtendedOptionsDialog.h"
+#include "ui_TrackingOptionsDialog.h"
 #include "ui/OpenCLPlatformSelectDialog.h"
 #include "Manip3D.hpp"
 
@@ -28,8 +29,11 @@
 #include <QGLContext>
 #include <QMessageBox>
 #include <QShortcut>
+#include <QXmlStreamWriter>
 
-
+#ifndef WITH_CUDA
+#include <gpu/opencl/OpenCL.hpp>
+#endif
 
 #include <iostream>
 #include <fstream>
@@ -45,7 +49,7 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-AutoscoperMainWindow::AutoscoperMainWindow(QWidget *parent) :
+AutoscoperMainWindow::AutoscoperMainWindow(bool skipGpuDevice, QWidget *parent) :
 												QMainWindow(parent),
 												ui(new Ui::AutoscoperMainWindow){
 	
@@ -81,11 +85,12 @@ AutoscoperMainWindow::AutoscoperMainWindow(QWidget *parent) :
 	setupShortcuts();
 
 #ifndef WITH_CUDA
-	OpenCLPlatformSelectDialog * dialog = new OpenCLPlatformSelectDialog(this);
-	if (dialog->getNumberPlatforms() > 1)dialog->exec();
-	delete dialog;
+	if(!skipGpuDevice){
+		OpenCLPlatformSelectDialog * dialog = new OpenCLPlatformSelectDialog(this);
+		if (dialog->getNumberPlatforms() > 1)dialog->exec();
+		delete dialog;
+	}
 #endif
-	
 }
 
 AutoscoperMainWindow::~AutoscoperMainWindow(){
@@ -600,13 +605,109 @@ QString AutoscoperMainWindow::get_filename(bool save, QString type)
 	return FileName;
 }
 
+void AutoscoperMainWindow::save_tracking_results(QString filename, bool save_as_matrix,bool save_as_rows,bool save_with_commas,bool convert_to_cm,bool convert_to_rad,bool interpolate){
+	const char* s = save_with_commas? "," :" ";
+
+	std::ofstream file(filename.toAscii().constData(), ios::out);
+
+	file.precision(16);
+	file.setf(ios::fixed,ios::floatfield);
+	bool invalid;
+	for (int i = 0; i < tracker->trial()->num_frames; ++i) {
+		for(int j = 0; j < tracker->trial()->num_volumes ; j++ ){
+			if (!interpolate) {
+				if (tracker->trial()->getXCurve(-1)->find(i) ==
+						tracker->trial()->getXCurve(-1)->end() &&
+					tracker->trial()->getYCurve(-1)->find(i) ==
+						tracker->trial()->getYCurve(-1)->end() &&
+					tracker->trial()->getZCurve(-1)->find(i) ==
+						tracker->trial()->getZCurve(-1)->end() &&
+					tracker->trial()->getYawCurve(-1)->find(i) ==
+						tracker->trial()->getYawCurve(-1)->end() &&
+					tracker->trial()->getPitchCurve(-1)->find(i) ==
+						tracker->trial()->getPitchCurve(-1)->end() &&
+					tracker->trial()->getRollCurve(-1)->find(i) ==
+						tracker->trial()->getRollCurve(-1)->end()) {
+					invalid = true;			
+				}else{
+					invalid = false;
+				}
+			}else{
+				invalid = false;
+			}
+
+			if(invalid){
+				if (save_as_matrix) {
+					file << "NaN";
+					for (int j = 0; j < 15; j++) { file << s << "NaN"; }
+				}
+				else {
+					file << "NaN";
+					for (int j = 0; j < 5; j++) { file << s << "NaN"; }
+				}
+			}else{
+				double xyzypr[6];
+				xyzypr[0] = (*tracker->trial()->getXCurve(j))(i);
+				xyzypr[1] = (*tracker->trial()->getYCurve(j))(i);
+				xyzypr[2] = (*tracker->trial()->getZCurve(j))(i);
+				xyzypr[3] = (*tracker->trial()->getYawCurve(j))(i);
+				xyzypr[4] = (*tracker->trial()->getPitchCurve(j))(i);
+				xyzypr[5] = (*tracker->trial()->getRollCurve(j))(i);
+
+				if (save_as_matrix) {
+					double m[16];
+					CoordFrame::from_xyzypr(xyzypr).to_matrix(m);
+
+					if (convert_to_cm) {
+						m[12] /= 10.0;
+						m[13] /= 10.0;
+						m[14] /= 10.0;
+					}
+
+					if (save_as_rows) {
+						file << m[0] << s << m[4] << s << m[8] << s << m[12] << s
+								<< m[1] << s << m[5] << s << m[9] << s << m[13] << s
+								<< m[2] << s << m[6] << s << m[10] << s << m[14] << s
+								<< m[3] << s << m[7] << s << m[11] << s<< m[15];
+					}
+					else {
+						file << m[0] << s << m[1] << s << m[2] << s << m[3] << s
+								<< m[4] << s << m[5] << s << m[6] << s << m[7] << s
+								<< m[8] << s << m[9] << s << m[10] << s << m[11] << s
+								<< m[12] << s << m[13] << s << m[14] << s<< m[15];
+							 
+					}
+				}
+				else {
+					if (convert_to_cm) {
+						xyzypr[0] /= 10.0;
+						xyzypr[1] /= 10.0;
+						xyzypr[2] /= 10.0;
+					}
+					if (convert_to_rad) {
+						xyzypr[3] *= M_PI/180.0;
+						xyzypr[4] *= M_PI/180.0;
+						xyzypr[5] *= M_PI/180.0;
+					}
+
+					file << xyzypr[0] << s << xyzypr[1] << s << xyzypr[2] << s
+							<< xyzypr[3] << s << xyzypr[4] << s << xyzypr[5];
+				}
+			}
+
+			if (j != tracker->trial()->num_volumes - 1) file << s ;
+		}
+		file << endl;
+	}
+	file.close();
+}
+
 void AutoscoperMainWindow::save_tracking_results(QString filename)
 {
 	ImportExportTrackingOptionsDialog * diag = new ImportExportTrackingOptionsDialog(this);
 	diag->exec();
 
 	if(diag->result()){
-		cerr << "Saving" << endl;
 		bool save_as_matrix = diag->diag->radioButton_TypeMatrix->isChecked();
 		bool save_as_rows = diag->diag->radioButton_OrientationRow->isChecked();
 		bool save_with_commas = diag->diag->radioButton_SeperatorComma->isChecked();
@@ -614,104 +715,96 @@ void AutoscoperMainWindow::save_tracking_results(QString filename)
 		bool convert_to_rad = diag->diag->radioButton_RotationRadians->isChecked();
 		bool interpolate = diag->diag->radioButton_InterpolationSpline->isChecked();
 
-		const char* s = save_with_commas? "," :" ";
-
-		std::ofstream file(filename.toAscii().constData(), ios::out);
-
-		file.precision(16);
-		file.setf(ios::fixed,ios::floatfield);
-		bool invalid;
-		for (int i = 0; i < tracker->trial()->num_frames; ++i) {
-			for(int j = 0; j < tracker->trial()->num_volumes ; j++ ){
-				if (!interpolate) {
-					if (tracker->trial()->getXCurve(-1)->find(i) ==
-							tracker->trial()->getXCurve(-1)->end() &&
-						tracker->trial()->getYCurve(-1)->find(i) ==
-							tracker->trial()->getYCurve(-1)->end() &&
-						tracker->trial()->getZCurve(-1)->find(i) ==
-							tracker->trial()->getZCurve(-1)->end() &&
-						tracker->trial()->getYawCurve(-1)->find(i) ==
-							tracker->trial()->getYawCurve(-1)->end() &&
-						tracker->trial()->getPitchCurve(-1)->find(i) ==
-							tracker->trial()->getPitchCurve(-1)->end() &&
-						tracker->trial()->getRollCurve(-1)->find(i) ==
-							tracker->trial()->getRollCurve(-1)->end()) {
-						invalid = true;			
-					}else{
-						invalid = false;
-					}
-				}else{
-					invalid = false;
-				}
-
-				if(invalid){
-					if (save_as_matrix) {
-						file << "NaN";
-						for (int j = 0; j < 15; j++) { file << s << "NaN"; }
-					}
-					else {
-						file << "NaN";
-						for (int j = 0; j < 5; j++) { file << s << "NaN"; }
-					}
-				}else{
-					double xyzypr[6];
-					xyzypr[0] = (*tracker->trial()->getXCurve(j))(i);
-					xyzypr[1] = (*tracker->trial()->getYCurve(j))(i);
-					xyzypr[2] = (*tracker->trial()->getZCurve(j))(i);
-					xyzypr[3] = (*tracker->trial()->getYawCurve(j))(i);
-					xyzypr[4] = (*tracker->trial()->getPitchCurve(j))(i);
-					xyzypr[5] = (*tracker->trial()->getRollCurve(j))(i);
-
-					if (save_as_matrix) {
-						double m[16];
-						CoordFrame::from_xyzypr(xyzypr).to_matrix(m);
-
-						if (convert_to_cm) {
-							m[12] /= 10.0;
-							m[13] /= 10.0;
-							m[14] /= 10.0;
-						}
-
-						if (save_as_rows) {
-							file << m[0] << s << m[4] << s << m[8] << s << m[12] << s
-								 << m[1] << s << m[5] << s << m[9] << s << m[13] << s
-								 << m[2] << s << m[6] << s << m[10] << s << m[14] << s
-								 << m[3] << s << m[7] << s << m[11] << s<< m[15];
-						}
-						else {
-							file << m[0] << s << m[1] << s << m[2] << s << m[3] << s
-								 << m[4] << s << m[5] << s << m[6] << s << m[7] << s
-								 << m[8] << s << m[9] << s << m[10] << s << m[11] << s
-								 << m[12] << s << m[13] << s << m[14] << s<< m[15];
-							 
-						}
-					}
-					else {
-						if (convert_to_cm) {
-							xyzypr[0] /= 10.0;
-							xyzypr[1] /= 10.0;
-							xyzypr[2] /= 10.0;
-						}
-						if (convert_to_rad) {
-							xyzypr[3] *= M_PI/180.0;
-							xyzypr[4] *= M_PI/180.0;
-							xyzypr[5] *= M_PI/180.0;
-						}
-
-						file << xyzypr[0] << s << xyzypr[1] << s << xyzypr[2] << s
-							 << xyzypr[3] << s << xyzypr[4] << s << xyzypr[5];
-					}
-				}
-
-				if (j != tracker->trial()->num_volumes - 1) file << s ;
-			}
-			file << endl;
-		}
-		file.close();
-
-		is_tracking_saved = true;
+		save_tracking_results(filename, save_as_matrix,save_as_rows,save_with_commas,convert_to_cm,convert_to_rad,interpolate);
 	}
-	delete diag;
+}
+
+void AutoscoperMainWindow::load_tracking_results(QString filename, bool save_as_matrix,bool save_as_rows,bool save_with_commas,bool convert_to_cm,bool convert_to_rad,bool interpolate){
+	char s = save_with_commas? ',': ' ';
+	
+	std::ifstream file(filename.toStdString().c_str(), ios::in);
+
+	for(int j = 0; j < tracker->trial()->num_volumes ; j++ ){
+		tracker->trial()->getXCurve(j)->clear();
+		tracker->trial()->getYCurve(j)->clear();
+		tracker->trial()->getZCurve(j)->clear();
+		tracker->trial()->getYawCurve(j)->clear();
+		tracker->trial()->getPitchCurve(j)->clear();
+		tracker->trial()->getRollCurve(j)->clear();
+	}
+
+	double m[16];
+	string line, value;
+	for (int i = 0; i < tracker->trial()->num_frames && getline(file,line); ++i) {
+		istringstream lineStream(line);
+		for (int k = 0; k < tracker->trial()->num_volumes ; k++ ){
+			for (int j = 0; j < (save_as_matrix? 16: 6) && getline(lineStream, value, s); ++j) {
+				istringstream valStream(value);
+				valStream >> m[j];
+			}
+
+			if (value.compare(0,3,"NaN") == 0) {
+				continue;
+			}
+
+			if (save_as_matrix && save_as_rows) {
+				double n[16];
+				memcpy(n,m,16*sizeof(double));
+				m[1] = n[4];
+				m[2] = n[8];
+				m[3] = n[12];
+				m[4] = n[1];
+				m[6] = n[9];
+				m[7] = n[13];
+				m[8] = n[2];
+				m[9] = n[6];
+				m[11] = n[14];
+				m[12] = n[3];
+				m[13] = n[7];
+				m[14] = n[11];
+			}
+
+			if (convert_to_cm) {
+				if (save_as_matrix) {
+					m[12] *= 10.0;
+					m[13] *= 10.0;
+					m[14] *= 10.0;
+				}
+				else {
+					m[0] *= 10.0;
+					m[1] *= 10.0;
+					m[2] *= 10.0;
+				}
+			}
+
+			if (convert_to_rad) {
+				if (!save_as_matrix) {
+					m[3] *= 180.0/M_PI;
+					m[4] *= 180.0/M_PI;
+					m[5] *= 180.0/M_PI;
+				}
+			}
+
+			if (save_as_matrix) {
+				CoordFrame::from_matrix(m).to_xyzypr(m);
+			}
+
+			tracker->trial()->getXCurve(k)->insert(i,m[0]);
+			tracker->trial()->getYCurve(k)->insert(i,m[1]);
+			tracker->trial()->getZCurve(k)->insert(i,m[2]);
+			tracker->trial()->getYawCurve(k)->insert(i,m[3]);
+			tracker->trial()->getPitchCurve(k)->insert(i,m[4]);
+			tracker->trial()->getRollCurve(k)->insert(i,m[5]);
+		}
+	}
+	file.close();
+
+	is_tracking_saved = true;
+
+	frame_changed();
+	update_graph_min_max(timeline_widget->getPosition_graph());
+
+	redrawGL();
 }
 
 void AutoscoperMainWindow::load_tracking_results(QString filename)
@@ -727,93 +820,9 @@ void AutoscoperMainWindow::load_tracking_results(QString filename)
 		bool save_with_commas = diag->diag->radioButton_SeperatorComma->isChecked();
 		bool convert_to_cm = diag->diag->radioButton_TranslationCM->isChecked();
 		bool convert_to_rad = diag->diag->radioButton_RotationRadians->isChecked();
-		//bool interpolate = diag->diag->radioButton_InterpolationSpline->isChecked();
+		bool interpolate = diag->diag->radioButton_InterpolationSpline->isChecked();
 
-		char s = save_with_commas? ',': ' ';
-
-		std::ifstream file(filename.toAscii().constData(), ios::in);
-
-		for(int j = 0; j < tracker->trial()->num_volumes ; j++ ){
-			tracker->trial()->getXCurve(j)->clear();
-			tracker->trial()->getYCurve(j)->clear();
-			tracker->trial()->getZCurve(j)->clear();
-			tracker->trial()->getYawCurve(j)->clear();
-			tracker->trial()->getPitchCurve(j)->clear();
-			tracker->trial()->getRollCurve(j)->clear();
-		}
-
-		double m[16];
-		string line, value;
-		for (int i = 0; i < tracker->trial()->num_frames && getline(file,line); ++i) {
-			istringstream lineStream(line);
-			for (int k = 0; k < tracker->trial()->num_volumes ; k++ ){
-				for (int j = 0; j < (save_as_matrix? 16: 6) && getline(lineStream, value, s); ++j) {
-					istringstream valStream(value);
-					valStream >> m[j];
-				}
-
-				if (value.compare(0,3,"NaN") == 0) {
-					continue;
-				}
-
-				if (save_as_matrix && save_as_rows) {
-					double n[16];
-					memcpy(n,m,16*sizeof(double));
-					m[1] = n[4];
-					m[2] = n[8];
-					m[3] = n[12];
-					m[4] = n[1];
-					m[6] = n[9];
-					m[7] = n[13];
-					m[8] = n[2];
-					m[9] = n[6];
-					m[11] = n[14];
-					m[12] = n[3];
-					m[13] = n[7];
-					m[14] = n[11];
-				}
-
-				if (convert_to_cm) {
-					if (save_as_matrix) {
-						m[12] *= 10.0;
-						m[13] *= 10.0;
-						m[14] *= 10.0;
-					}
-					else {
-						m[0] *= 10.0;
-						m[1] *= 10.0;
-						m[2] *= 10.0;
-					}
-				}
-
-				if (convert_to_rad) {
-					if (!save_as_matrix) {
-						m[3] *= 180.0/M_PI;
-						m[4] *= 180.0/M_PI;
-						m[5] *= 180.0/M_PI;
-					}
-				}
-
-				if (save_as_matrix) {
-					CoordFrame::from_matrix(m).to_xyzypr(m);
-				}
-
-				tracker->trial()->getXCurve(k)->insert(i,m[0]);
-				tracker->trial()->getYCurve(k)->insert(i,m[1]);
-				tracker->trial()->getZCurve(k)->insert(i,m[2]);
-				tracker->trial()->getYawCurve(k)->insert(i,m[3]);
-				tracker->trial()->getPitchCurve(k)->insert(i,m[4]);
-				tracker->trial()->getRollCurve(k)->insert(i,m[5]);
-			}
-		}
-		file.close();
-
-		is_tracking_saved = true;
-
-		frame_changed();
-		update_graph_min_max(timeline_widget->getPosition_graph());
-
-		redrawGL();
+		load_tracking_results(filename, save_as_matrix, save_as_rows, save_with_commas, convert_to_cm, convert_to_rad, interpolate);
 	}
 	delete diag;
 }
@@ -823,33 +832,37 @@ void AutoscoperMainWindow::openTrial(){
 
 	if ( cfg_fileName.isNull() == false )
     {
-        try {
-			Trial * trial = new Trial(cfg_fileName.toAscii().constData());
-			tracker->load(*trial);
-			delete trial;
+        openTrial(cfg_fileName);
+	}
+}
 
-			trial_filename = cfg_fileName.toStdString();
-			is_trial_saved = true;
-			is_tracking_saved = true;
+void AutoscoperMainWindow::openTrial(QString filename){
+    try {
+		Trial * trial = new Trial(filename.toStdString().c_str());
+		tracker->load(*trial);
+		delete trial;
 
-			for (int i =0 ; i < manipulator.size(); i ++){
-				delete manipulator[i];
-			}
-			manipulator.clear();
-			for(int i = 0 ; i < tracker->trial()->num_volumes; i ++){
-				manipulator.push_back(new Manip3D());
-				getManipulator(i)->set_transform(Mat4d());
-			}
-
-			setupUI();
-			timelineSetValue(0);
-
-			timeline_widget->setTrial(tracker->trial());
-
+		for (int i =0 ; i < manipulator.size(); i ++){
+			delete manipulator[i];
 		}
-		catch (std::exception& e) {
-			std::cerr << e.what() << std::endl;
+		manipulator.clear();
+		for(int i = 0 ; i < tracker->trial()->num_volumes; i ++){
+			manipulator.push_back(new Manip3D());
+			getManipulator(i)->set_transform(Mat4d());
 		}
+		
+		trial_filename = filename.toStdString();
+		is_trial_saved = true;
+		is_tracking_saved = true;
+
+		setupUI();
+		timelineSetValue(0);
+
+		timeline_widget->setTrial(tracker->trial());
+
+	}
+	catch (std::exception& e) {
+		std::cerr << e.what() << std::endl;
 	}
 }
 
@@ -1033,6 +1046,226 @@ void AutoscoperMainWindow::on_actionQuit_triggered(bool checked){
 	QApplication::quit();
 }
 
+void AutoscoperMainWindow::on_actionSaveForBatch_triggered(bool checked){
+	QString inputPath = QFileDialog::getExistingDirectory (this,
+									tr("Select Directory"), QDir::currentPath());
+	if ( inputPath.isNull() == false )
+    {
+		QString xml_filename = inputPath + OS_SEP + "batch.xml";
+		if (!xml_filename.isNull())
+		{
+			QFile file(xml_filename);
+			if (file.open(QIODevice::WriteOnly | QIODevice::Text))
+			{
+				QXmlStreamWriter xmlWriter(&file);
+				xmlWriter.writeStartDocument();
+				xmlWriter.writeStartElement("Batch");
+				xmlWriter.setAutoFormatting(true);
+				//save GPU_devices
+				xmlWriter.writeStartElement("GPUDevice");
+				xmlWriter.writeCharacters(QString::number(xromm::gpu::getUsedPlatform()));
+				xmlWriter.writeEndElement();
+
+				//save Trial
+				QString trial_filename = inputPath + OS_SEP + "trial.cfg";
+				tracker->trial()->save(trial_filename.toAscii().constData());
+				xmlWriter.writeStartElement("Trial");
+				xmlWriter.writeCharacters(trial_filename);
+				xmlWriter.writeEndElement();
+
+				//save Filters
+				filters_widget->saveAllSettings(inputPath + OS_SEP);
+
+				//save Pivot
+				for(int i = 0; i < tracker->trial()->num_volumes;i++){
+					xmlWriter.writeStartElement("Pivot");
+					xmlWriter.writeAttribute("id", QString::number(i));
+					xmlWriter.writeCharacters(QString::fromStdString( tracker->trial()->getVolumeMatrix(i)->to_string()));
+					xmlWriter.writeEndElement();
+				}
+
+				//save Tracking
+				ImportExportTrackingOptionsDialog * diag = new ImportExportTrackingOptionsDialog(this);
+				diag->exec();
+		
+				bool save_as_matrix = diag->diag->radioButton_TypeMatrix->isChecked();
+				bool save_as_rows = diag->diag->radioButton_OrientationRow->isChecked();
+				bool save_with_commas = diag->diag->radioButton_SeperatorComma->isChecked();
+				bool convert_to_cm = diag->diag->radioButton_TranslationCM->isChecked();
+				bool convert_to_rad = diag->diag->radioButton_RotationRadians->isChecked();
+				bool interpolate = diag->diag->radioButton_InterpolationSpline->isChecked();
+
+				QString tracking_filename = inputPath + OS_SEP + "track_data.cfg";
+				save_tracking_results(tracking_filename, save_as_matrix,save_as_rows,save_with_commas,convert_to_cm,convert_to_rad,interpolate);
+
+				xmlWriter.writeStartElement("TrackingData");
+				xmlWriter.writeAttribute("Matrix", QString::number(save_as_matrix));
+				xmlWriter.writeAttribute("Rows", QString::number(save_as_rows));
+				xmlWriter.writeAttribute("Commas", QString::number(save_with_commas));
+				xmlWriter.writeAttribute("cm", QString::number(convert_to_cm));
+				xmlWriter.writeAttribute("rad", QString::number(convert_to_rad));
+				xmlWriter.writeAttribute("interpolate", QString::number(interpolate));
+				xmlWriter.writeCharacters(tracking_filename);
+				xmlWriter.writeEndElement();
+				delete diag;
+
+				//save TrackingOptions
+				TrackingOptionsDialog * tracking_dialog_tmp;
+				tracking_dialog_tmp = new TrackingOptionsDialog(this);
+				tracking_dialog_tmp->setRange(timeline_widget->getPosition_graph()->min_frame,timeline_widget->getPosition_graph()->max_frame, tracker->trial()->num_frames-1);
+				tracking_dialog_tmp->inActive = true;
+				tracking_dialog_tmp->exec();
+				xmlWriter.writeStartElement("TrackingOptions");
+				xmlWriter.writeAttribute("Start", QString::number(tracking_dialog_tmp->diag->spinBox_FrameStart->value()));
+				xmlWriter.writeAttribute("End", QString::number(tracking_dialog_tmp->diag->spinBox_FrameEnd->value()));
+				xmlWriter.writeAttribute("Guess", QString::number(getTracker()->trial()->guess));
+				xmlWriter.writeAttribute("Iterations", QString::number(tracking_dialog_tmp->diag->spinBox_NumberRefinements->value()));		
+				xmlWriter.writeEndElement();
+
+				xmlWriter.writeEndElement();
+
+				delete tracking_dialog_tmp;
+				xmlWriter.writeEndDocument();
+				file.close();
+			}
+		}
+    }
+}
+
+void AutoscoperMainWindow::runBatch(QString batchfile, bool saveData){
+	bool save_as_matrix;
+	bool save_as_rows;
+	bool save_with_commas;
+	bool convert_to_cm;
+	bool convert_to_rad;
+	bool interpolate;
+	
+	int start_Frame = 0;
+	int end_Frame;
+	int iterations = 1;
+
+	bool doTracking = false;
+	QString trackdata_filename; 
+
+	gltracker->makeCurrent();
+
+	if ( batchfile.isNull() == false )
+    {
+		
+		QString xml_filename = batchfile;
+		if (!xml_filename.isNull())
+		{
+			QFile file(xml_filename);
+			if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+			{
+				QXmlStreamReader xmlReader(&file);
+				//Reading from the file
+
+				while (!xmlReader.atEnd())
+				{
+					if (xmlReader.isStartElement())
+					{
+						QString name = xmlReader.name().toString();
+						if (name == "GPUDevice")
+						{
+							fprintf(stderr,"Load GPUDevice Setting\n");
+							xromm::gpu::setUsedPlatform(xmlReader.readElementText().toInt());
+							QApplication::processEvents();
+						}
+						else if (name == "Trial")
+						{
+							fprintf(stderr,"Load Trial Setting\n");
+							openTrial(xmlReader.readElementText());
+							end_Frame = tracker->trial()->num_frames;
+							QFileInfo info(file);
+							filters_widget->loadAllSettings(info.absolutePath() + OS_SEP);
+							QApplication::processEvents();
+						}
+						else if (name == "Pivot")
+						{
+							QXmlStreamAttributes attr = xmlReader.attributes() ;
+							int id = attr.value("id").toString().toInt();
+							fprintf(stderr,"Load Pivot %d Setting\n", id);
+							QString pivot_data= xmlReader.readElementText();
+							tracker->trial()->getVolumeMatrix(id)->from_string(pivot_data.toAscii().constData());
+						}
+						else if (name == "TrackingData")
+						{
+							fprintf(stderr,"Load TrackingData Setting\n");
+							QXmlStreamAttributes attr = xmlReader.attributes() ;
+							save_as_matrix = attr.value("Matrix").toString().toInt();
+							save_as_rows = attr.value("Rows").toString().toInt();
+							save_with_commas = attr.value("Commas").toString().toInt();
+							convert_to_cm = attr.value("cm").toString().toInt();
+							convert_to_rad = attr.value("rad").toString().toInt();
+							interpolate = attr.value("interpolate").toString().toInt();
+							trackdata_filename = xmlReader.readElementText();
+
+							load_tracking_results(trackdata_filename, save_as_matrix, save_as_rows, save_with_commas, convert_to_cm, convert_to_rad, interpolate);
+							QApplication::processEvents();
+						}
+						else if (name == "TrackingOptions")
+						{
+							fprintf(stderr,"Load TrackingOptions Setting\n");
+							doTracking = true;
+							QXmlStreamAttributes attr = xmlReader.attributes() ;
+							start_Frame = attr.value("Start").toString().toInt();
+							end_Frame = attr.value("End").toString().toInt();
+							getTracker()->trial()->guess = attr.value("Guess").toString().toInt();
+							iterations = attr.value("Iterations").toString().toInt();
+						}
+						xmlReader.readNextStartElement();
+					}
+					else
+					{
+						xmlReader.readNext();	
+					}	
+				}
+				if (xmlReader.hasError())
+				{
+					std::cout << "XML error: " << xmlReader.error() << std::endl;
+				}
+				file.close();
+			}
+		}
+    }
+	
+	if(doTracking){
+		fprintf(stderr,"Start Tracking\n");
+		TrackingOptionsDialog * tracking_dialog_tmp;
+		tracking_dialog_tmp = new TrackingOptionsDialog(this);
+		tracking_dialog_tmp->diag->spinBox_FrameStart->setValue(start_Frame);
+		tracking_dialog_tmp->diag->spinBox_FrameEnd->setValue(end_Frame);
+		tracking_dialog_tmp->diag->spinBox_NumberRefinements->setValue(iterations);	
+		QApplication::processEvents();
+		tracking_dialog_tmp->on_pushButton_OK_clicked(true);
+
+		if(saveData){
+			
+			QFileInfo info(trackdata_filename);
+			QString tracking_filename_out = info.absolutePath() + OS_SEP + info.completeBaseName()+ "_tracked.tra";
+			fprintf(stderr,"Save Data to %s\n",tracking_filename_out.toAscii().constData());
+			save_tracking_results(tracking_filename_out, save_as_matrix,save_as_rows,save_with_commas,convert_to_cm,convert_to_rad,interpolate);
+		}
+
+		delete tracking_dialog_tmp;
+	}
+}
+
+
+void AutoscoperMainWindow::on_actionLoad_xml_batch_triggered(bool checked){
+
+
+	QString inputfile= QFileDialog::getOpenFileName(this,
+									tr("Open XML File"), QDir::currentPath(),tr("XML Files (") + tr(" *.xml)"));
+	if ( inputfile.isNull() == false )
+    {
+		fprintf(stderr,"%s\n",inputfile.toAscii().constData());
+		runBatch(inputfile);
+    }
+}
+
+
 void AutoscoperMainWindow::on_actionSave_Test_Sequence_triggered(bool checked){
 	fprintf(stderr,"Saving testSequence\n");
 	for (int i = 0 ; i < tracker->trial()->num_frames;i ++){
@@ -1053,7 +1286,6 @@ void AutoscoperMainWindow::on_actionSave_Test_Sequence_triggered(bool checked){
 }
 
 //Edit menu
-
 void AutoscoperMainWindow::on_actionUndo_triggered(bool checked){
 	undo_state();
 }
