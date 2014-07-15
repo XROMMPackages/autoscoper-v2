@@ -51,7 +51,18 @@ void TrackingExtendedOptionsDialog::on_pushButtonApply_clicked(bool checked){
 		} else if (diag->renderOptionC->isChecked()){
 			mainwindow->getTracker()->setRenderMode(C);
 		}
-		// Render Modes
+		
+		// set the levenberg marquardt tolerance
+		if (diag->levmarSpinBox->text().toDouble() != 0.0){
+			mainwindow->getTracker()->lTolerance = diag->levmarSpinBox->text().toDouble();
+		}
+
+		if (diag->downhillSpinBox->text().toDouble() != 0.0) {
+			mainwindow->getTracker()->FTOL = diag->downhillSpinBox->text().toDouble();
+		}
+
+		// set bounding box division factor
+		mainwindow->getTracker()->box_division_factor = diag->bbDivisionFactor->text().toInt();
 
 	}
 	this->accept();

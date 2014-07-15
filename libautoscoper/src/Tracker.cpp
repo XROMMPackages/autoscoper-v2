@@ -60,6 +60,13 @@
 #include "gpu/opencl/Ncc.hpp"
 #endif
 
+#ifdef WITH_CMINPACK
+#include "cminpack.h"
+#endif
+ 
+#define DIM_PER_OBJ 6
+#define sqr(a) ((a) * (a))
+
 #include "VolumeDescription.hpp"
 #include "Video.hpp"
 #include "View.hpp"
@@ -79,6 +86,11 @@ static bool firstRun = true;
 
 static xromm::Tracker* g_markerless = NULL;
 double FUNC(double* P) { return g_markerless->minimizationFunc(P+1); }
+
+// pointer to cminpack function
+#ifdef WITH_CMINPACK
+	int (*FCN)(void *p, int m, int n, const double *x, double *FVEC, int iflag);
+#endif
 
 namespace xromm {
 
@@ -191,15 +203,24 @@ void Tracker::load(const Trial& trial)
     }
 }
 
+int levmar_minimizationFunc(void *p, int mFuncs, int nVars, const double *values, double *FVEC, int iflag);
+
 void Tracker::optimize(int frame, int dFrame, int repeats)
 {
+
     if (frame < 0 || frame >= trial_.num_frames) {
         cerr << "Tracker::optimize(): Invalid frame." << endl;
         return;
     }
 
+	//default values
+	this->FTOL = 0.01; // default downhill simplex tolerance
+	this->lTolerance = 0.01; // default levenberg marquardt tolerance
+	this->box_division_factor = 1; // default one bounding box
+
     int NDIM =  6 * trial_.num_volumes;       // Number of dimensions to optimize over.
-    double FTOL = 0.01; // Tolerance for the optimization.
+    //double FTOL = 0.01; // Tolerance for the optimization. -- still kept at default value
+	double LTOL = sqrt(__cminpack_func__(dpmpar)(1));
     MAT P;              // Matrix of points to initialize the routine.
     double Y[MP];       // The values of the minimization function at the
                         // initial points.
@@ -232,7 +253,7 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
 					              (*trial_.getZCurve(i))(trial_.frame-dFrame),
 						          (*trial_.getYawCurve(i))(trial_.frame-dFrame),
 							      (*trial_.getPitchCurve(i))(trial_.frame-dFrame),
-								  (*trial_.getRollCurve(i))(trial_.frame-dFrame) }; // two objects, xyzypr info
+								  (*trial_.getRollCurve(i))(trial_.frame-dFrame) };
 
 	       CoordFrame xcframe = CoordFrame::from_xyzypr(xyzypr1).linear_extrap(
 		                         CoordFrame::from_xyzypr(xyzypr2));
@@ -265,6 +286,8 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
 		   }
 		}
 
+		double *initGuess;
+
         // Determine the function values at the vertices of the initial
         // simplex
 		for (int i = 0; i < NDIM + 1; ++i) {
@@ -275,9 +298,29 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
         ITER = 0;
 
         if (this->trial()->getOptAlg() == DOWNHILL_SIMPLEX){
-			AMOEBA(P, Y, NDIM, FTOL, &ITER);
+			AMOEBA(P, Y, NDIM, this->FTOL, &ITER);
 		} else if (this->trial()->getOptAlg() == LEVENBERG_MARQUARDT){
-			// call to levenberg marquardt optimization
+#ifdef WITH_CMINPACK
+
+			unsigned numFunctions = trial_.num_volumes * views_.size() * box_division_factor * box_division_factor;
+			unsigned numParams = trial_.num_volumes * DIM_PER_OBJ;
+
+			double *initGuess = new double[numParams];
+			double *FVEC = 	new double[numFunctions];
+
+			for (int i = 0; i < numParams; i++) initGuess[i] = 0.0;
+
+			int * iwa = new int[numParams];
+			int lwa = numFunctions * numParams + 5 * numParams + numFunctions;
+			double * wa = new double[lwa];
+
+			int info = __cminpack_func__(lmdif1)(levmar_minimizationFunc, this, numFunctions, numParams, initGuess, FVEC, LTOL, iwa, wa, lwa); 
+
+			for (int i = 0; i < numParams; i++) initGuess[i] *= lTolerance;
+#else
+			fprintf(stderr, "Error: Optimization: Not Compiled With CMINPACK, Using Downhill Simplex");
+			AMOEBA(P, Y, NDIM, this->FTOL, &ITER);
+#endif
 		}
 
 		for (int i = 0; i < trial_.num_volumes; i++){
@@ -293,12 +336,21 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
 			CoordFrame manip;
 
 			// initiate rotation based on trial specs
-			if (this->trial()->getRotationMode() == AXIS_ANGLE)
-				manip = CoordFrame::from_xyzAxis_angle(&P[1][1  + i * 6]);
-			else if (this->trial()->getRotationMode() == QUATERNION)
-				manip = CoordFrame::from_xyzijk(&P[1][1  + i * 6]);
-			else if (this->trial()->getRotationMode() == EULER_ANGLE){
-				manip = CoordFrame::from_xyzypr(&P[1][1  + i * 6]);
+			if (this->trial()->getRotationMode() == AXIS_ANGLE) {
+				if (this->trial()->getOptAlg() == DOWNHILL_SIMPLEX)
+					manip = CoordFrame::from_xyzAxis_angle(&P[1][1  + i * 6]);
+				else if (this->trial()->getOptAlg() == LEVENBERG_MARQUARDT)
+					manip = CoordFrame::from_xyzAxis_angle(&initGuess[i*6]);
+			} else if (this->trial()->getRotationMode() == QUATERNION) {
+				if (this->trial()->getOptAlg() == DOWNHILL_SIMPLEX)
+					manip = CoordFrame::from_xyzAxis_angle(&P[1][1  + i * 6]);
+				else if (this->trial()->getOptAlg() == LEVENBERG_MARQUARDT)
+					manip = CoordFrame::from_xyzAxis_angle(&initGuess[i*6]);
+			} else if (this->trial()->getRotationMode() == EULER_ANGLE){
+				if (this->trial()->getOptAlg() == DOWNHILL_SIMPLEX)
+					manip = CoordFrame::from_xyzAxis_angle(&P[1][1  + i * 6]);
+				else if (this->trial()->getOptAlg() == LEVENBERG_MARQUARDT)
+					manip = CoordFrame::from_xyzAxis_angle(&initGuess[i*6]);
 			}
 
 			xcframe = xcframe * trial_.getVolumeMatrix(i)->inverse() * manip * *trial_.getVolumeMatrix(i);
@@ -311,6 +363,8 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
 			trial_.getYawCurve(i)->insert(trial_.frame,xyzypr[3]);
 			trial_.getPitchCurve(i)->insert(trial_.frame,xyzypr[4]);
 			trial_.getRollCurve(i)->insert(trial_.frame,xyzypr[5]);
+
+
 		}
 
 		totalIter += ITER;
@@ -319,42 +373,149 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
          << " done in " << totalIter << " total iterations" << endl;
 }
 
-double Tracker::minimizationFunc(const double* values)
-{
-	const int view_number = views_.size();
+/* function to compute the viewport of the current bounding box */
+void Tracker::computeTempViewport(double *viewport, int viewID, int volID){
+	// Calculate the viewport surrounding the volume
+	
+	if (this->rMode == C){
+		double min_max[4] = {1.0,1.0,-1.0,-1.0};
+		for (int c = 0; c < trial_.num_volumes; c++){
+			this->calculate_viewport(views_[viewID]->drrRenderer(c)->getModelView(),viewport, c);
+			//compare min_max with viewport
+			if (min_max[0] > viewport[0])
+				min_max[0] = viewport[0];
+			if (min_max[1] > viewport[1])
+				min_max[1] = viewport[1];
+			if (min_max[2] < viewport[0] + viewport[2])
+				min_max[2] = viewport[0] + viewport[2];
+			if (min_max[3] < viewport[1] + viewport[3])
+				min_max[3] = viewport[1] + viewport[3];
+		}
+		//set viewport from min_max
+		viewport[0] = min_max[0];
+		viewport[1] = min_max[1];
+		viewport[2] = min_max[2]-min_max[0];
+		viewport[3] = min_max[3]-min_max[1];
+	} else {
+		this->calculate_viewport(views_[viewID]->drrRenderer(volID)->getModelView(),viewport, volID);
+	}
+}
 
-	for (int i = 0; i < trial_.num_volumes; i++){
-		// compute xcframe
+
+/* function used for the lmdir cminpack routine*/
+int levmar_minimizationFunc(void *p, int mFuncs, int nVars, const double *values, double *FVEC, int iflag)
+{
+	double *values_ = new double[nVars];
+	Tracker * tracker = (Tracker * ) p;
+	for (int i = 0; i < nVars; i++) values_[i] = values[i] * tracker->lTolerance;
+
+	/*FILE * tmp = fopen("tmp.txt","a");
+	for(int k = 0; k < nVars; k++)
+		fprintf(tmp,"%e ",values_[k]);
+	fprintf(tmp,"\n");
+	fclose(tmp);*/
+
+	const int view_number = tracker->views().size();
+
+	for (int i = 0; i < tracker->trial()->num_volumes; i++){
+		tracker->minFuncCombined(values);
+		int rVolumes = tracker->getRenderMode() == C ? 1 : tracker->trial()->num_volumes;
+		int insertIndex = 0;
+
+		for (unsigned j = 0; j < tracker->views().size(); j++){
+			for (int i = 0; i < rVolumes; i++){
+				// Calculate the viewport surrounding the volume
+				double viewport[4]; 
+				tracker->computeTempViewport(viewport,j,i);
+				// compute sub-box width and height
+				unsigned trunc_width = viewport[2] / tracker->box_division_factor;
+				unsigned trunc_height = viewport[3] / tracker->box_division_factor;
+				
+				for (int y_offset = 0; y_offset < tracker->box_division_factor; y_offset++){
+					for (int x_offset = 0; x_offset < tracker->box_division_factor; x_offset++){
+
+						int x_min = viewport[0] + trunc_width * x_offset;
+						int y_min = viewport[1] + trunc_height * y_offset;
+
+						FVEC[insertIndex++] = tracker->getCorrelationScore(viewport,i,j);
+
+					}
+				}
+			}
+		}
+	}
+	delete [] values_;
+	return 0;
+}
+
+/* computes the manip coordframe and sets the 
+   modelview for the drr and rad renderrer. This
+   operation is independent of the optimization used. */
+void Tracker::minFuncCombined(const double *values){
+	for (int i = 0; i < this->trial()->num_volumes; i++){
 		double xyzypr[6] = { (*(const_cast<Trial&>(trial_)).getXCurve(i))(trial_.frame),
                          (*(const_cast<Trial&>(trial_)).getYCurve(i))(trial_.frame),
                          (*(const_cast<Trial&>(trial_)).getZCurve(i))(trial_.frame),
                          (*(const_cast<Trial&>(trial_)).getYawCurve(i))(trial_.frame),
                          (*(const_cast<Trial&>(trial_)).getPitchCurve(i))(trial_.frame),
-                         (*(const_cast<Trial&>(trial_)).getRollCurve(i))(trial_.frame) };
+                         (*(const_cast<Trial&>(trial_)).getRollCurve(i))(trial_.frame)};
 		CoordFrame xcframe = CoordFrame::from_xyzypr(xyzypr);
 		CoordFrame manip;
 
-		if (this->trial()->getRotationMode() == AXIS_ANGLE){
-			manip = CoordFrame::from_xyzAxis_angle(&values[ 6* i]);
-		} else if (this->trial()->getRotationMode() == QUATERNION){
-			manip = CoordFrame::from_xyzijk(&values[ 6* i]);
-		} else if (this->trial()->getRotationMode() == EULER_ANGLE){
-			manip = CoordFrame::from_xyzypr(&values[ 6* i]);
+		if (rMode == AXIS_ANGLE){
+			manip = CoordFrame::from_xyzAxis_angle(&values[6*i]);
+		} else if (rMode == QUATERNION){
+			manip = CoordFrame::from_xyzijk(&values[6*i]);
+		} else if (rMode == EULER_ANGLE){
+			manip = CoordFrame::from_xyzypr(&values[6*i]);
 		}
 
 		xcframe = xcframe * trial_.getVolumeMatrix(i)->inverse() * manip * *trial_.getVolumeMatrix(i);
 
-		
 		for (unsigned int j = 0; j < views_.size(); ++j) {
-			// Set the modelview matrix for DRR rendering
 			CoordFrame modelview = views_[j]->camera()->coord_frame().inverse()*xcframe;
 			double imv[16]; 
 			modelview.inverse().to_matrix_row_order(imv);
 			views_[j]->drrRenderer(i)->setInvModelView(imv);
-			views_[j]->drrRenderer(i)->setModelView(modelview);
+			views_[j]->drrRenderer(i)->setModelView(modelview); // set model view and inv model view
 		}
 	}
-	
+}
+
+
+/* function used to compute the correlation score for the volID object from 
+   view number viewNum */
+double Tracker::getCorrelationScore(double * viewport, int volID, int viewNum)
+{
+
+	unsigned int render_width =   (viewport[2] / views_[viewNum]->camera()->viewport()[2]) * ((float) trial_.render_width);
+	unsigned int render_height =  (viewport[3] / views_[viewNum]->camera()->viewport()[3]) * ((float) trial_.render_height);
+
+	float render_width_f =   (viewport[2] / views_[viewNum]->camera()->viewport()[2]) * ((float) trial_.render_width);
+	float render_height_f =  (viewport[3] / views_[viewNum]->camera()->viewport()[3]) * ((float) trial_.render_height);
+
+	if (this->rMode == A){
+		// Render the DRR and Radiograph
+		views_[viewNum]->drrRenderer(volID)->setViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+		views_[viewNum]->renderDrr(rendered_drr_,render_width, render_height,volID);
+	} else if (this->rMode == B || this->rMode == C){
+		for (int v = 0; v < trial_.num_volumes; v++){
+			views_[viewNum]->drrRenderer(v)->setViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+			views_[viewNum]->renderDrr(rendered_drr_,render_width, render_height);
+		}
+	}
+
+	views_[viewNum]->radRenderer()->set_viewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+	views_[viewNum]->renderRad(rendered_rad_,render_width,render_height);
+
+	return 1.0 - gpu::ncc(rendered_drr_, rendered_rad_, render_width*render_height);
+}
+
+
+/* function is used for the downhill simplex calculation */
+double Tracker::minimizationFunc(const double* values)
+{	
+	this->minFuncCombined(values);
 	double **object_correlations = new double*[trial_.num_volumes];
 	
 	for (int i = 0; i < trial_.num_volumes; i++)
@@ -366,48 +527,13 @@ double Tracker::minimizationFunc(const double* values)
 		for (int i = 0; i < rVolumes; i++){
 			// Calculate the viewport surrounding the volume
 			double viewport[4];
-			if (this->rMode == C){
-				double min_max[4] = {1.0,1.0,-1.0,-1.0};
-				for (int c = 0; c < trial_.num_volumes; c++){
-					this->calculate_viewport(views_[j]->drrRenderer(c)->getModelView(),viewport, c);
-					//compare min_max with viewport
-					if (min_max[0] > viewport[0])
-						min_max[0] = viewport[0];
-					if (min_max[1] > viewport[1])
-						min_max[1] = viewport[1];
-					if (min_max[2] < viewport[0] + viewport[2])
-						min_max[2] = viewport[0] + viewport[2];
-					if (min_max[3] < viewport[1] + viewport[3])
-						min_max[3] = viewport[1] + viewport[3];
-				}
-				//set viewport from min_max
-				viewport[0] = min_max[0];
-				viewport[1] = min_max[1];
-				viewport[2] = min_max[2]-min_max[0];
-				viewport[3] = min_max[3]-min_max[1];
-			} else 
-				this->calculate_viewport(views_[j]->drrRenderer(i)->getModelView(),viewport, i);
-
+			this->computeTempViewport(viewport, j,i);
+			
 			// Calculate the size of the image to render
 			unsigned render_width = viewport[2] * trial_.render_width / views_[j]->camera()->viewport()[2];
 			unsigned render_height = viewport[3] * trial_.render_height / views_[j]->camera()->viewport()[3];
 
-			if (this->rMode == A){
-				// Render the DRR and Radiograph
-				views_[j]->drrRenderer(i)->setViewport(viewport[0],viewport[1],viewport[2],viewport[3]);
-				views_[j]->renderDrr(rendered_drr_,render_width,render_height,i);
-			} else if (this->rMode == B || this->rMode == C){
-				for (int v = 0; v < trial_.num_volumes; v++)
-					views_[j]->drrRenderer(v)->setViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
-				views_[j]->renderDrr(rendered_drr_,render_width, render_height);
-			}
-
-			views_[j]->radRenderer()->set_viewport(viewport[0],viewport[1],viewport[2],viewport[3]);
-			views_[j]->renderRad(rendered_rad_,render_width,render_height);
-
-			// Calculate the correlation
-			 object_correlations[i][j] = 1.0-gpu::ncc(rendered_drr_,rendered_rad_,
-											render_width*render_height);
+			object_correlations[i][j] = this->getCorrelationScore(viewport,i,j);
 
 #if DEBUG
         save_debug_image(rendered_drr_,render_width,render_height);
@@ -415,6 +541,7 @@ double Tracker::minimizationFunc(const double* values)
 #endif
 		}
 	}
+
 	double *final_correlations = new double[rVolumes];
 	for (unsigned int j = 0; j <rVolumes; j++){
 		final_correlations[j] = 0.0 ;
@@ -438,8 +565,10 @@ double Tracker::minimizationFunc(const double* values)
 	delete[] object_correlations;
 	delete[] final_correlations;
 	return final_score;
-
+	
 }
+
+
 void
 Tracker::calculate_viewport(const CoordFrame& modelview,double* viewport, int volumeId) const
 {

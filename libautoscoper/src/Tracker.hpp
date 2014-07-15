@@ -92,9 +92,14 @@ public:
     const gpu::View* view(size_t i) const { return views_.at(i); }
 	void setRenderMode(renderMode r) {this->rMode = r;}
 	renderMode getRenderMode() {return this->rMode;}
+	void calculate_viewport(const CoordFrame& modelview, double* viewport, int volumeId) const;
+	void minFuncCombined(const double *values);
+	void computeTempViewport(double *viewport,int viewID, int volID);
+	double getCorrelationScore(double * viewport, int volID, int viewNum);
+	double lTolerance, FTOL;
+	unsigned box_division_factor;
 
 private:
-    void calculate_viewport(const CoordFrame& modelview, double* viewport, int volumeId) const;
 	renderMode rMode;
     Trial trial_;
     std::vector <gpu::VolumeDescription*> volumeDescription_;

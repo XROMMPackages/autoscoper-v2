@@ -121,7 +121,7 @@ void TrackingOptionsDialog::on_pushButton_OK_clicked(bool checked){
 			mainwindow->getTracker()->trial()->getPitchCurve(-1)->insert(from_frame,xyzypr[4]);
 			mainwindow->getTracker()->trial()->getRollCurve(-1)->insert(from_frame,xyzypr[5]);
 		}
-	fprintf(stderr, "do we get here?");
+	
 		if (!frame_optimizing) {
 			if (reverse) {
 				frame = to_frame;
