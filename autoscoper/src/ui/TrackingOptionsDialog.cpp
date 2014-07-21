@@ -12,7 +12,6 @@
 TrackingOptionsDialog::TrackingOptionsDialog(QWidget *parent) :
 												QDialog(parent),
 												diag(new Ui::TrackingOptionsDialog){
-
 	diag->setupUi(this);
 	doExit = false;
 	frame_optimizing = false;
@@ -98,7 +97,7 @@ void TrackingOptionsDialog::setRange(int from, int to, int max){
 
 void TrackingOptionsDialog::on_pushButton_OK_clicked(bool checked){
 	if(!inActive){
-		AutoscoperMainWindow *mainwindow  = dynamic_cast <AutoscoperMainWindow *> ( parent());
+		AutoscoperMainWindow *mainwindow  = dynamic_cast <AutoscoperMainWindow *> (parent());
 		if(!mainwindow) return;
 
 		from_frame = diag->spinBox_FrameStart->value();

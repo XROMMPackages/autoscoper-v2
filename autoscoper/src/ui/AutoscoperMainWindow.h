@@ -27,6 +27,8 @@ class Manip3D;
 struct GraphData;
 class TrackingExtendedOptionsDialog;
 
+extern enum comp_corr;
+
 class AutoscoperMainWindow : public QMainWindow{
 
 	Q_OBJECT

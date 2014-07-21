@@ -219,7 +219,10 @@ float ncc(Buffer* f, Buffer* g, unsigned n)
 	float den = sqrt(ncc_sum(d_den1s,n)*ncc_sum(d_den2s,n));
 
 	if (den < 1e-5) {
-		return 1e5;
+		//return 1e5;
+		return -2;
+	}else if (n < 9){
+		return -3;
 	}
 
 	return ncc_sum(d_nums,n)/den;

@@ -193,7 +193,7 @@ void FilterTreeWidget::loadAllSettings(QString directory){
 		CameraTreeWidgetItem * camera = dynamic_cast<CameraTreeWidgetItem*> (topLevelItem(i));
 		if(camera){
 			QString filename = directory + camera->getName() + ".vie"; 
-			std::ifstream file(filename.toStdString().c_str(), std::ios::in);
+			std::ifstream file(filename.toAscii().constData(), std::ios::in);
 			std::string line, key;
 			while (std::getline(file,line)) {
 				if (line.compare("DrrRenderer_begin") == 0) {

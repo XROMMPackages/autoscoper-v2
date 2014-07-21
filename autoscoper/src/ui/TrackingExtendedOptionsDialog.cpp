@@ -5,7 +5,7 @@
 #include "Tracker.hpp"
 #include "Trial.hpp"
 #include <QTimer>
-TrackingExtendedOptionsDialog::TrackingExtendedOptionsDialog(QWidget *parent) :
+TrackingExtendedOptionsDialog::TrackingExtendedOptionsDialog(QWidget *parent):
 												QDialog(parent),
 												diag(new Ui::TrackingExtendedOptionsDialog){
 	diag->setupUi(this);
@@ -45,21 +45,27 @@ void TrackingExtendedOptionsDialog::on_pushButtonApply_clicked(bool checked){
 		}
 
 		if (diag->renderOptionA->isChecked()){
-			mainwindow->getTracker()->setRenderMode(A);
+			mainwindow->getTracker()->setRenderMode(SEP);
 		} else if (diag->renderOptionB->isChecked()){
-			mainwindow->getTracker()->setRenderMode(B);
+			mainwindow->getTracker()->setRenderMode(INDV);
 		} else if (diag->renderOptionC->isChecked()){
-			mainwindow->getTracker()->setRenderMode(C);
+			mainwindow->getTracker()->setRenderMode(COMB);
 		}
 		
-		// set the levenberg marquardt tolerance
-		if (diag->levmarSpinBox->text().toDouble() != 0.0){
-			mainwindow->getTracker()->lTolerance = diag->levmarSpinBox->text().toDouble();
+		// set the levenberg marquardt multipliers
+		if (diag->levmarRotateSpinBox->text().toDouble() != 0.0){
+			mainwindow->getTracker()->lRotateMultiplier = diag->levmarRotateSpinBox->text().toDouble();
+		}
+		if (diag->levmarTransSpinBox->text().toDouble() != 0.0){
+			mainwindow->getTracker()->lTransMultiplier = diag->levmarTransSpinBox->text().toDouble();
 		}
 
 		if (diag->downhillSpinBox->text().toDouble() != 0.0) {
 			mainwindow->getTracker()->FTOL = diag->downhillSpinBox->text().toDouble();
 		}
+		
+		// set the default correlation value
+		mainwindow->getTracker()->defaultCorrelationValue = diag->correlationDefaultSpinBox->value();
 
 		// set bounding box division factor
 		mainwindow->getTracker()->box_division_factor = diag->bbDivisionFactor->text().toInt();

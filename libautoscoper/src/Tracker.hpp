@@ -58,7 +58,7 @@
 #endif
 #include "Trial.hpp"
 
-enum renderMode { A, B, C };
+enum renderMode { SEP, INDV, COMB };
 
 namespace xromm
 {
@@ -96,8 +96,11 @@ public:
 	void minFuncCombined(const double *values);
 	void computeTempViewport(double *viewport,int viewID, int volID);
 	double getCorrelationScore(double * viewport, int volID, int viewNum);
-	double lTolerance, FTOL;
+	double FTOL;
+	double lTransMultiplier;
+	double lRotateMultiplier;
 	unsigned box_division_factor;
+	double defaultCorrelationValue;
 
 private:
 	renderMode rMode;

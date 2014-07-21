@@ -52,9 +52,9 @@
 #include "Volume.hpp"
 #include "VolumeTransform.hpp"
 
-enum rotationMode{ AXIS_ANGLE, QUATERNION, EULER_ANGLE };
-enum opt_alg{ DOWNHILL_SIMPLEX, LEVENBERG_MARQUARDT};
-enum comp_corr{ ADD, MULTIPLY };
+enum rotationMode{ AXIS_ANGLE = 0, QUATERNION = 1, EULER_ANGLE = 2};
+enum opt_alg{ DOWNHILL_SIMPLEX = 0, LEVENBERG_MARQUARDT = 1};
+enum comp_corr{ ADD = 0, MULTIPLY = 1 };
 
 namespace xromm
 {

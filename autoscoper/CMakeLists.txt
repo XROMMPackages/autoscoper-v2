@@ -17,7 +17,8 @@ FIND_PACKAGE(Qt4 REQUIRED COMPONENTS QtCore QtGui QtOpenGL )
 set(QT_USE_QTOPENGL TRUE)
 INCLUDE(${QT_USE_FILE})
 SET(CMAKE_AUTOMOC ON)
-SET(autoscoper_SOURCES
+
+SET(autoscoper_SOURCES
      	src/main.cpp
 )
 
