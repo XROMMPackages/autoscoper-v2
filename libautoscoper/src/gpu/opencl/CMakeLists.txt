@@ -1,3 +1,5 @@
+include (src/gpu/opencl/kernel/CMakeLists.txt)
+
 SET(opencl_HEADERS 
 	src/gpu/opencl/Compositor.hpp
 	src/gpu/opencl/ContrastFilter.hpp
@@ -24,4 +26,4 @@ SET(opencl_SOURCES
 	src/gpu/opencl/Merger.cpp
 )
 
-include (src/gpu/opencl/kernel/CMakeLists.txt)
+
