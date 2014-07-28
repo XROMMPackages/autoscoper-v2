@@ -24,7 +24,8 @@ void TrackingExtendedOptionsDialog::on_pushButtonApply_clicked(bool checked){
 		if(diag->radioButtonYPR->isChecked()){
 			mainwindow->getTracker()->trial()->setRotationMode(EULER_ANGLE);
 		}else if(diag->radioButtonQuat->isChecked()){
-			fprintf(stderr, "quaternion is selected");
+			
+			(stderr, "quaternion is selected");
 			mainwindow->getTracker()->trial()->setRotationMode(QUATERNION);
 		}else if(diag->radioButtonAxisAngle->isChecked()){
 			mainwindow->getTracker()->trial()->setRotationMode(AXIS_ANGLE);
@@ -69,6 +70,17 @@ void TrackingExtendedOptionsDialog::on_pushButtonApply_clicked(bool checked){
 
 		// set bounding box division factor
 		mainwindow->getTracker()->box_division_factor = diag->bbDivisionFactor->text().toInt();
+
+		if (diag->show2DBox->isChecked()){
+			mainwindow->getTracker()->show2DBoundingBox = true;
+		}  else {
+			mainwindow->getTracker()->show2DBoundingBox = false;
+		}
+		if (diag->show3DBox->isChecked()) {
+			mainwindow->getTracker()->show3DBoundingBox = true;
+		} else {
+			mainwindow->getTracker()->show3DBoundingBox = false;
+		}
 
 	}
 	this->accept();

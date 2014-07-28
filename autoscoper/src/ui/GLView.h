@@ -58,7 +58,8 @@ private:
 	void draw_cylinder(float radius, float height, int slices);
 	void draw_camera();
 	void draw_textured_quad(const double* pts, unsigned int texid);
-	
+	void drawViewport(const CoordFrame& modelview, int volumeId);
+	void drawBB(const CoordFrame& modelview, int volumeId);
 };
 
 

@@ -53,6 +53,8 @@ namespace xromm {
 
 class Volume;
 
+
+
 namespace gpu {
 
 // The VolumeDescription class provides an abstraction between the volume as it
@@ -73,7 +75,11 @@ public:
     float maxValue() const { return maxValue_; }
 
     const Image* image() const { return image_; }
+	double *localToGlobalCoordinateTrans(double *point);
 
+	double globalToMinMaxLocal_[4][4];
+	double minMaxLocalCorrection_[4][4];
+	double scaleCorrectionMatrix_[4][4];
 
 private:
     VolumeDescription(const VolumeDescription&);
@@ -81,10 +87,15 @@ private:
 
     float minValue_;
     float maxValue_;
+	float scale_[3];
+	float height_;
     float invScale_[3];
     float invTrans_[3];
     int flips_[3];
 	Image* image_;
+
+
+	template <class T> void cropVolume(const T* data, int width,int height,int depth, int* min,int* max);
 };
 
 } } // namespace xromm::opencl

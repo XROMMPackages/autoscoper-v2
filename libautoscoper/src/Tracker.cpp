@@ -39,6 +39,9 @@
 /// \file Tracker.hpp
 /// \author Andy Loomis
 
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/highgui/highgui.hpp"
+
 #include "Tracker.hpp"
 
 #include <algorithm>
@@ -132,7 +135,10 @@ Tracker::Tracker()
 	  FTOL(0.01),
 	  box_division_factor(3),
 	  rMode(SEP),
-	  defaultCorrelationValue(0)
+	  defaultCorrelationValue(0),
+	  compute_cropped_bounding_box(1),
+	  show3DBoundingBox(true),
+	  show2DBoundingBox(true)
 {
     g_markerless = this;
 }
@@ -372,7 +378,7 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
 
 
 		}
-
+		
 		totalIter += ITER;
 	}
 		cerr << "Tracker::optimize(): Frame " << trial_.frame
@@ -454,9 +460,7 @@ int levmar_minimizationFunc(void *p, int mFuncs, int nVars, const double *values
 						viewport_box[0] = x_min;
 						viewport_box[1] = y_min;
 						viewport_box[2] = trunc_width;
-						viewport_box[3]= trunc_height;	
-
-						fprintf(boundingBoxParams, "x_min: %lf, y_min: %lf, trunc_width: %lf, trunc_height: %lf\n", x_min,y_min, trunc_width, trunc_height);
+						viewport_box[3]= trunc_height;
 
 						FVEC[insertIndex++] = tracker->getCorrelationScore(viewport_box,i,j);
 
@@ -606,6 +610,12 @@ double Tracker::minimizationFunc(const double* values)
 	
 }
 
+void
+Tracker::getBBPoint(const CoordFrame& modelview,double* point, int volumeId) const
+{
+	double *temp = volumeDescription_[volumeId]->localToGlobalCoordinateTrans(point);
+	modelview.point_to_world_space(temp,point);
+}
 
 void
 Tracker::calculate_viewport(const CoordFrame& modelview,double* viewport, int volumeId) const
@@ -613,18 +623,33 @@ Tracker::calculate_viewport(const CoordFrame& modelview,double* viewport, int vo
     // Calculate the minimum and maximum values of the bounding box
     // corners after they have been projected onto the view plane
     double min_max[4] = {1.0,1.0,-1.0,-1.0};
-    double corners[24] = {0,0,-1,0,0,0, 0,1,-1,0,1,0, 1,0,-1,1,0,0,1,1,-1,1,1,0};
+	double corners[24] = {0,0,-1,0,0,0, 0,1,-1,0,1,0, 1,0,-1,1,0,0,1,1,-1,1,1,0};
+	double corners_[24] = {1,1,1, 1,1,-1, 1,-1,1, -1,1,1, 1,-1,-1, -1,1,-1, -1,-1,1, -1,-1,-1};
 	
     for (int j = 0; j < 8; j++) {
 
         // Calculate the loaction of the corner in object space
-        corners[3*j+0] = (corners[3*j+0]-volumeDescription_[volumeId]->invTrans()[0])/volumeDescription_[volumeId]->invScale()[0];
-        corners[3*j+1] = (corners[3*j+1]-volumeDescription_[volumeId]->invTrans()[1])/volumeDescription_[volumeId]->invScale()[1];
-        corners[3*j+2] = (corners[3*j+2]-volumeDescription_[volumeId]->invTrans()[2])/volumeDescription_[volumeId]->invScale()[2];
+		if (compute_cropped_bounding_box == volumeId){
+			corners[3*j+0] = (corners[3*j+0]-volumeDescription_[volumeId]->invTrans()[0])/volumeDescription_[volumeId]->invScale()[0];
+			corners[3*j+1] = (corners[3*j+1]-volumeDescription_[volumeId]->invTrans()[1])/volumeDescription_[volumeId]->invScale()[1];
+			corners[3*j+2] = (corners[3*j+2]-volumeDescription_[volumeId]->invTrans()[2])/volumeDescription_[volumeId]->invScale()[2];
+		} else {
+
+			double curr_corner[3] = {corners_[3*j+0], corners_[3*j+1], corners_[3*j+2]};
+			double *temp = volumeDescription_[volumeId]->localToGlobalCoordinateTrans(curr_corner);
+
+			corners_[3*j+0] = temp[0];
+			corners_[3*j+1] = temp[1];
+			corners_[3*j+2] = temp[2];
+		}
 
         // Calculate the location of the corner in camera space
         double corner[3];
-        modelview.point_to_world_space(&corners[3*j],corner);
+		if (compute_cropped_bounding_box == volumeId){
+			modelview.point_to_world_space(&corners[3*j],corner);
+		} else {
+			modelview.point_to_world_space(&corners_[3*j],corner);
+		}
 
         // Calculate its projection onto the film plane, where z = -2
         double film_plane[3];

@@ -93,6 +93,7 @@ public:
 	void setRenderMode(renderMode r) {this->rMode = r;}
 	renderMode getRenderMode() {return this->rMode;}
 	void calculate_viewport(const CoordFrame& modelview, double* viewport, int volumeId) const;
+	void getBBPoint(const CoordFrame& modelview,double* point, int volumeId) const;
 	void minFuncCombined(const double *values);
 	void computeTempViewport(double *viewport,int viewID, int volID);
 	double getCorrelationScore(double * viewport, int volID, int viewNum);
@@ -101,6 +102,9 @@ public:
 	double lRotateMultiplier;
 	unsigned box_division_factor;
 	double defaultCorrelationValue;
+	unsigned compute_cropped_bounding_box;
+	bool show3DBoundingBox;
+	bool show2DBoundingBox;
 
 private:
 	renderMode rMode;

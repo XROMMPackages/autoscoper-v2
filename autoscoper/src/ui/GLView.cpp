@@ -461,11 +461,25 @@ void GLView::paintGL()
 			glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
 			gluPerspective(viewdata.fovy,viewdata.ratio,viewdata.near_clip,viewdata.far_clip);
+
+			for(int idx_volume = 0 ; idx_volume < mainwindow->getTracker()->trial()->num_volumes ; idx_volume++){
+				CoordFrame modelview  = mainwindow->getTracker()->trial()->cameras.at(cameraViewWidget->getID()).coord_frame().inverse()
+									* CoordFrame::from_matrix(trans(mainwindow->getManipulator(idx_volume)->transform()))
+									* (*mainwindow->getTracker()->trial()->getVolumeMatrix(idx_volume));
+				if (mainwindow->getTracker()->show2DBoundingBox){
+					drawViewport(modelview, idx_volume);
+				}
+				if (mainwindow->getTracker()->show3DBoundingBox){
+					drawBB(modelview, idx_volume);
+				}
+			}
+
 			glMatrixMode(GL_MODELVIEW);
 			glLoadMatrixd(m);
 
 			enable_headlight();
 			draw_manip_from_view(&viewdata);
+
 			glDisable(GL_LIGHTING);
 		}
 	}
@@ -811,4 +825,75 @@ void GLView::draw_textured_quad(const double* pts, unsigned int texid)
     glEnd();
 
     glPopAttrib();
+}
+
+void GLView::drawViewport(const CoordFrame& modelview, int volumeId){
+	CameraViewWidget * cameraViewWidget = dynamic_cast <CameraViewWidget *> ( this->parent());
+	double bb [4];
+
+	cameraViewWidget->getMainWindow()->getTracker()->calculate_viewport(modelview,bb,volumeId);
+
+	glPushAttrib(GL_ENABLE_BIT);
+	glColor3f(1.0f,0.0f,0.0f);
+	double z = -2;
+	glBegin(GL_LINE_LOOP);
+	glVertex3d(bb[0], bb[1],  z);
+    glVertex3d(bb[0] + bb[2], bb[1],  z);
+    glVertex3d(bb[0] + bb[2], bb[1] + bb[3],  z);
+    glVertex3d(bb[0], bb[1] + bb[3],  z);
+	glEnd();
+	glPopAttrib();
+}
+
+void GLView::drawBB(const CoordFrame& modelview, int volumeId){
+	CameraViewWidget * cameraViewWidget = dynamic_cast <CameraViewWidget *> ( this->parent());
+	double bb [4];
+
+	double corners_[24] = {1,1,1, 1,1,-1, 1,-1,1, -1,1,1, 1,-1,-1, -1,1,-1, -1,-1,1, -1,-1,-1};
+	for (int j = 0; j < 8; j++) {
+		cameraViewWidget->getMainWindow()->getTracker()->getBBPoint(modelview,&corners_[3*j],volumeId);
+	}
+
+	glPushAttrib(GL_ENABLE_BIT);
+	glColor3f(0.0f,1.0f,0.0f);
+	glBegin(GL_LINES);
+	
+	glVertex3d(corners_[0], corners_[1], corners_[2]);
+	glVertex3d(corners_[3], corners_[4], corners_[5]);
+
+	glVertex3d(corners_[0], corners_[1], corners_[2]);
+	glVertex3d(corners_[6], corners_[7], corners_[8]);
+
+	glVertex3d(corners_[0], corners_[1], corners_[2]);
+	glVertex3d(corners_[9], corners_[10], corners_[11]);
+
+	glVertex3d(corners_[3], corners_[4], corners_[5]);
+	glVertex3d(corners_[12], corners_[13], corners_[14]);
+
+	glVertex3d(corners_[12], corners_[13], corners_[14]);
+	glVertex3d(corners_[6], corners_[7], corners_[8]);
+
+	glVertex3d(corners_[6], corners_[7], corners_[8]);
+	glVertex3d(corners_[18], corners_[19], corners_[20]);
+
+	glVertex3d(corners_[12], corners_[13], corners_[14]);
+	glVertex3d(corners_[21], corners_[22], corners_[23]);
+
+	glVertex3d(corners_[9], corners_[10], corners_[11]);
+	glVertex3d(corners_[15], corners_[16], corners_[17]);
+
+	glVertex3d(corners_[3], corners_[4], corners_[5]);
+	glVertex3d(corners_[15], corners_[16], corners_[17]);
+
+	glVertex3d(corners_[15], corners_[16], corners_[17]);
+	glVertex3d(corners_[21], corners_[22], corners_[23]);
+
+	glVertex3d(corners_[21], corners_[22], corners_[23]);
+	glVertex3d(corners_[18], corners_[19], corners_[20]);
+
+	glVertex3d(corners_[18], corners_[19], corners_[20]);
+	glVertex3d(corners_[9], corners_[10], corners_[11]);
+
+	glEnd();
+	glPopAttrib();
 }
