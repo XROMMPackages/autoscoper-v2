@@ -3,6 +3,12 @@ PROJECT(Autoscoper)
 option(BUILD_WITH_CUDA "Build With CUDA instead of OpenCL" OFF)
 option(BUILD_WITH_CMINPACK "Build With CMinpack for Levenberg Marquardt" OFF)
 
+IF(WIN32)
+	option(QT_TIFFIO "USE TIFFIO FROM QT" ON)
+ELSE()
+	SET(QT_TIFFIO OFF)
+ENDIF()
+
 #SET BUILD-TYPE TO RELEASE IF NOT DEFINED
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release)
@@ -34,9 +40,9 @@ ENDIF()
 FIND_PACKAGE(Qt4)
 
 #Build Libtiff from QT 3rdPartySources
-IF(WIN32)
-EXECUTE_PROCESS(COMMAND ${QT_QMAKE_EXECUTABLE} -config staticlib -t vclib -r ${QT_LIBRARY_DIR}/../src/3rdparty/libtiff.pri)
-EXECUTE_PROCESS(COMMAND msbuild libtiff.vcxproj /p:configuration=release)
+IF(QT_TIFFIO)
+	EXECUTE_PROCESS(COMMAND ${QT_QMAKE_EXECUTABLE} -config staticlib -t vclib -r ${QT_LIBRARY_DIR}/../src/3rdparty/libtiff.pri)
+	EXECUTE_PROCESS(COMMAND msbuild libtiff.vcxproj /p:configuration=release)
 ENDIF()
 
 add_subdirectory (libautoscoper) 
