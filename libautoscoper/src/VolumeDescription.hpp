@@ -65,7 +65,7 @@ namespace gpu {
 class VolumeDescription
 {
 public:
-    VolumeDescription(const Volume& volume);
+    VolumeDescription(const Volume& volume, int threshold = 0);
     ~VolumeDescription();
 
     const float* invScale() const { return invScale_; }
@@ -75,11 +75,13 @@ public:
     float maxValue() const { return maxValue_; }
 
     const Image* image() const { return image_; }
-	double *localToGlobalCoordinateTrans(double *point);
+	void localToGlobalCoordinateTrans(double *point, double* transformedPoint);
 
 	double globalToMinMaxLocal_[4][4];
 	double minMaxLocalCorrection_[4][4];
 	double scaleCorrectionMatrix_[4][4];
+
+	int pixel_threshold;
 
 private:
     VolumeDescription(const VolumeDescription&);

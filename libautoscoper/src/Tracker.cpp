@@ -137,8 +137,8 @@ Tracker::Tracker()
 	  rMode(SEP),
 	  defaultCorrelationValue(0),
 	  compute_cropped_bounding_box(1),
-	  show3DBoundingBox(true),
-	  show2DBoundingBox(true)
+	  show3DBoundingBox(false),
+	  show2DBoundingBox(false)
 {
     g_markerless = this;
 }
@@ -156,6 +156,16 @@ void Tracker::init()
 #ifdef WITH_CUDA
     gpu::cudaInitWrap();
 #endif
+}
+
+void Tracker::setVolumeThreshold(int threshold){
+	for (int i = 0 ;i < volumeDescription_.size(); i++){
+		delete volumeDescription_[i];
+	}
+	volumeDescription_.clear();
+	for (int i = 0 ;i < trial_.volumes.size(); i++){
+		volumeDescription_.push_back(new gpu::VolumeDescription(trial_.volumes[i], threshold));
+	}
 }
 
 void Tracker::load(const Trial& trial)
@@ -176,7 +186,6 @@ void Tracker::load(const Trial& trial)
 		volumeDescription_.push_back(new gpu::VolumeDescription(trial_.volumes[i]));
 	}
     
-
 	unsigned npixels = trial_.render_width*trial_.render_height;
 #ifdef WITH_CUDA
 	gpu::cudaMallocWrap(rendered_drr_,trial_.render_width*trial_.render_height*sizeof(float));
@@ -613,7 +622,8 @@ double Tracker::minimizationFunc(const double* values)
 void
 Tracker::getBBPoint(const CoordFrame& modelview,double* point, int volumeId) const
 {
-	double *temp = volumeDescription_[volumeId]->localToGlobalCoordinateTrans(point);
+	double temp [4];
+	volumeDescription_[volumeId]->localToGlobalCoordinateTrans(point,temp);
 	modelview.point_to_world_space(temp,point);
 }
 
@@ -636,7 +646,8 @@ Tracker::calculate_viewport(const CoordFrame& modelview,double* viewport, int vo
 		} else {
 
 			double curr_corner[3] = {corners_[3*j+0], corners_[3*j+1], corners_[3*j+2]};
-			double *temp = volumeDescription_[volumeId]->localToGlobalCoordinateTrans(curr_corner);
+			double temp[4];
+			volumeDescription_[volumeId]->localToGlobalCoordinateTrans(curr_corner,temp);
 
 			corners_[3*j+0] = temp[0];
 			corners_[3*j+1] = temp[1];

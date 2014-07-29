@@ -1770,3 +1770,16 @@ void AutoscoperMainWindow::setupShortcuts(){
 	ui->actionQuit->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Q));
 	ui->actionInsert_Key->setShortcut(QKeySequence(Qt::Key_S));
 }
+
+void AutoscoperMainWindow::on_actionShow_2D_BoundingBox_triggered(bool checked){
+	tracker->show2DBoundingBox = checked;
+}
+
+void AutoscoperMainWindow::on_actionShow_3D_BoundingBox_triggered(bool checked){
+	tracker->show3DBoundingBox = checked;
+}
+
+void AutoscoperMainWindow::on_actionSet_3D_Bounding_Box_Threshold_triggered(bool checked) {
+	int new_threshold = QInputDialog::getInt(this, tr("Input Integer Bounding Box Threshold"), tr("Threshold "));
+	tracker->setVolumeThreshold(new_threshold);
+}

@@ -150,6 +150,9 @@ class AutoscoperMainWindow : public QMainWindow{
 		//View
 		void on_actionLayoutCameraViews_triggered(bool checked);
 		void on_actionOpen_Extended_Tracking_Options_triggered(bool checked);
+		void on_actionSet_3D_Bounding_Box_Threshold_triggered(bool checked);
+		void on_actionShow_3D_BoundingBox_triggered(bool checked);
+		void on_actionShow_2D_BoundingBox_triggered(bool checked);
 
 		//Toolbar
 		void on_toolButtonOpenTrial_clicked();

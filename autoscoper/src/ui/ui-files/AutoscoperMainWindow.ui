@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>774</width>
+    <width>768</width>
     <height>695</height>
    </rect>
   </property>
@@ -383,7 +383,7 @@ Trial</string>
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>774</width>
+     <width>768</width>
      <height>21</height>
     </rect>
    </property>
@@ -430,7 +430,6 @@ Trial</string>
     <addaction name="actionUnlock"/>
     <addaction name="actionBreak_Tangents"/>
     <addaction name="actionSmooth_Tangents"/>
-    <addaction name="actionToggle_Optimization"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -438,6 +437,10 @@ Trial</string>
     </property>
     <addaction name="actionLayoutCameraViews"/>
     <addaction name="actionOpen_Extended_Tracking_Options"/>
+    <addaction name="actionSet_3D_Bounding_Box_Threshold"/>
+    <addaction name="separator"/>
+    <addaction name="actionShow_2D_BoundingBox"/>
+    <addaction name="actionShow_3D_BoundingBox"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -573,9 +576,9 @@ Trial</string>
   </action>
   <action name="actionOpen_Extended_Tracking_Options">
    <property name="text">
-     <string>Open Extended Tracking Options</string>
+    <string>Open Extended Tracking Options</string>
    </property>
- </action>
+  </action>
   <action name="actionSaveForBatch">
    <property name="text">
     <string>save xml for batch</string>
@@ -584,6 +587,27 @@ Trial</string>
   <action name="actionLoad_xml_batch">
    <property name="text">
     <string>load xml batch</string>
+   </property>
+  </action>
+  <action name="actionShow_2D_BoundingBox">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show 2D BoundingBox</string>
+   </property>
+  </action>
+  <action name="actionShow_3D_BoundingBox">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show 3D BoundingBox</string>
+   </property>
+  </action>
+  <action name="actionSet_3D_Bounding_Box_Threshold">
+   <property name="text">
+    <string>Set 3D Bounding Box Threshold</string>
    </property>
   </action>
  </widget>

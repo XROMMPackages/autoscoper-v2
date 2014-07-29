@@ -118,7 +118,7 @@ template <class T> void VolumeDescription::cropVolume(const T* data,
 	for (int k_ = 0; k_ < depth; k_++){
 		for (int i_ = 0; i_ < height; i_++){
 			for (int j_ = 0; j_ < width; j_++){
-				if (*dp1_++ != T(0)) {
+				if (*dp1_++ > T(pixel_threshold)) {
 					numValidPoints++;
 				}
 			}
@@ -129,17 +129,26 @@ template <class T> void VolumeDescription::cropVolume(const T* data,
 	X.create(numValidPoints,3,CV_64F);
 	int numValidPointsToInsert = 0;
 	const T* dp1 = data;
-
+		
     for (int k = 0; k < depth; k++) {
 		bool nonZeroCol = false;
         for (int i = 0; i < height; i++) {
 			bool nonZeroRow = false;
             for (int j = 0; j < width; j++) {
-                if (*dp1++ != T(0)) {
-					X.at<double>(numValidPointsToInsert,0) = (double) j;
-					X.at<double>(numValidPointsToInsert,1) = (double) i;
-					X.at<double>(numValidPointsToInsert++,2) = (double) k;
-                    if (j < min[0]) {
+				if (*dp1++ > T(pixel_threshold)) {
+                    X.at<double>(numValidPointsToInsert,0) = ((double) j) * scale_[0];
+					X.at<double>(numValidPointsToInsert,1) = ((double) (height_ - i - 1)) * scale_[1];
+					X.at<double>(numValidPointsToInsert++,2) = ((double) -k )* scale_[2];
+
+					//	tmp[2] = - tmp[2];
+					//tmp[1] = (height_ - tmp[1] - 1);
+					//tmp[0] = tmp[0];
+
+
+					   //j + min[0]/(float)dim[0];
+					   //i + ((volume.height()-max[1]-1)/(float)dim[1]);
+					   //k - min[2]/(float)dim[2];
+					if (j < min[0]) {
                         min[0] = j;
                     }
                     if (j > max[0]) {
@@ -168,7 +177,6 @@ template <class T> void VolumeDescription::cropVolume(const T* data,
         }
     }
 
-	
 	// perform PCA on cropped matrix
 	cv::PCA resultsPCA = cv::PCA::PCA(X, Mat(), CV_PCA_DATA_AS_ROW, 3);
 	cv::Mat eigenVectors, mean;
@@ -199,7 +207,6 @@ template <class T> void VolumeDescription::cropVolume(const T* data,
 		localscale[i] = (pMAX[i] - pMIN[i])/2; // scaling from unitcoordinates (-1 , 1) to local coordinats (min , max) 
 	localscale[3] = 1;
 
-	
 	// these are dynamically allocated so they can be saved
 
 	/* --------- set up translate/rotate --------- */
@@ -280,9 +287,16 @@ template <class T> void VolumeDescription::cropVolume(const T* data,
 
 }
 
-VolumeDescription::VolumeDescription(const Volume& volume)
-    : minValue_(0.0f), maxValue_(1.0f), image_(0)
+
+VolumeDescription::VolumeDescription(const Volume& volume, int threshold)
+    : minValue_(0.0f), maxValue_(1.0f), image_(0), pixel_threshold(threshold)
 {
+	scale_[0] = volume.scaleX();
+    scale_[1] = volume.scaleY();
+    scale_[2] = volume.scaleZ();
+	
+	height_ = volume.height();
+
     // Crop the volume
     int min[3], max[3];
     switch(volume.bps()) {
@@ -361,10 +375,7 @@ VolumeDescription::VolumeDescription(const Volume& volume)
             exit(0);
     }
 
-	scale_[0] = volume.scaleX();
-    scale_[1] = volume.scaleY();
-    scale_[2] = volume.scaleZ();
-	height_ = volume.height();
+
 
     // Calculate the offset and size of the sub-volume
     invScale_[0] = 1.0f/(float)(volume.scaleX()*dim[0]);
@@ -431,30 +442,21 @@ VolumeDescription::VolumeDescription(const Volume& volume)
 
 // pass a four dimensional point, first three to account
 // for rotation then final to account for translation.
-double *VolumeDescription::localToGlobalCoordinateTrans(double *point) {
-	double *transformedPoint = new double[4];
+void VolumeDescription::localToGlobalCoordinateTrans(double *point,double* transformedPoint) {
 	transformedPoint[3] = 1; // set bottom entry to one
 	for (int i = 0; i < 3; i++) transformedPoint[i] = point[i]; // copy the current vals
 
 	// multiply by the scale correction matrix
-	for (int i = 0; i < 4; i++){
-		double cumulative = 0.0;
-		for (int j  = 0; j < 4; j++){
-			cumulative += (transformedPoint[j] * scaleCorrectionMatrix_[j][i]);
-		}
-		transformedPoint[i] = cumulative;
+	for (int i = 0; i < 3; i++){
+		transformedPoint[i] = transformedPoint[i] * scaleCorrectionMatrix_[i][i];
 	}
 
-	for (int y = 0; y < 4; y++) {
-		double tempRowSum = 0.0;
-		for (int x = 0; x < 4; x++) {
-			tempRowSum += (minMaxLocalCorrection_[x][y] * transformedPoint[x]);
-		}
-		transformedPoint[y] = tempRowSum;
+	for (int y = 0; y < 3; y++) {
+		transformedPoint[y] -= minMaxLocalCorrection_[3][y];
 	}
 
 	double tmp[4];
-
+	
 	// multiply rotation-translation matrix
 	for (int y = 0; y < 4; y++) {
 		double tempRowSum = 0.0;
@@ -464,14 +466,8 @@ double *VolumeDescription::localToGlobalCoordinateTrans(double *point) {
 		tmp[y] = tempRowSum;
 	}
 
-	tmp[2] = - tmp[2];
-	tmp[1] = (height_ - tmp[1] - 1);
-	tmp[0] = tmp[0];
-
 	for (int y = 0; y < 3; y++)
-		transformedPoint[y] = tmp[y] * scale_[y];
-
-	return transformedPoint;
+		transformedPoint[y] = tmp[y];
 }
 
 VolumeDescription::~VolumeDescription()

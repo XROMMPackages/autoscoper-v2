@@ -105,6 +105,7 @@ public:
 	unsigned compute_cropped_bounding_box;
 	bool show3DBoundingBox;
 	bool show2DBoundingBox;
+	void setVolumeThreshold(int threshold);
 
 private:
 	renderMode rMode;

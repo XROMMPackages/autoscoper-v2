@@ -608,38 +608,6 @@
           <double>1000000000.000000000000000</double>
          </property>
         </widget>
-        <widget class="QCheckBox" name="show2DBox">
-         <property name="geometry">
-          <rect>
-           <x>340</x>
-           <y>10</y>
-           <width>141</width>
-           <height>17</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string>Show 2D Bounding Box</string>
-         </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
-        </widget>
-        <widget class="QCheckBox" name="show3DBox">
-         <property name="geometry">
-          <rect>
-           <x>340</x>
-           <y>40</y>
-           <width>131</width>
-           <height>17</height>
-          </rect>
-         </property>
-         <property name="text">
-          <string>Show 3D Bounding Box</string>
-         </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
-        </widget>
        </widget>
       </item>
      </layout>

@@ -893,7 +893,20 @@ void GLView::drawBB(const CoordFrame& modelview, int volumeId){
 
 	glVertex3d(corners_[18], corners_[19], corners_[20]);
 	glVertex3d(corners_[9], corners_[10], corners_[11]);
+	glEnd();
+
+	glColor3f(0.0f,1.0f,0.0f);
+	glBegin(GL_LINES);
+	double corners2_[21] = {0,0,0, 0,0,-1, 0,0,1, 0,1,0, 0,-1,0, -1,0,0, 1,0,0,};
+	for (int j = 0; j < 7; j++) {
+		cameraViewWidget->getMainWindow()->getTracker()->getBBPoint(modelview,&corners2_[3*j],volumeId);
+	}
+	for (int k = 1; k < 7; k++){
+		glVertex3d(corners2_[0], corners2_[1], corners2_[2]);
+		glVertex3d(corners2_[3* k], corners2_[3* k + 1], corners2_[3* k + 2]);
+	}
 
 	glEnd();
+
 	glPopAttrib();
 }
