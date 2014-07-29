@@ -3,7 +3,7 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 
-find_package( TiffIO REQUIRED )
+find_package( Qt REQUIRED )
 
 FIND_PACKAGE( OpenCV REQUIRED )
 
@@ -40,7 +40,6 @@ SET(libautoscoper_SOURCES
 	src/VolumeTransform.cpp
 )
 
-include_directories(${OPENCV_INCLUDE_DIRS} ${TIFFIO_INCLUDE_DIRS})
 
 IF(BUILD_WITH_CMINPACK)
 find_package( CMinpack REQUIRED )
@@ -62,4 +61,7 @@ ELSE(NOT BUILD_WITH_CUDA)
 	add_library (libautoscoper STATIC ${libautoscoper_SOURCES} ${libautoscoper_HEADERS} ${opencl_SOURCES} ${opencl_HEADERS} ${OPT_LIBRARIES} )
 	ADD_DEPENDENCIES(libautoscoper ${SHADER_TO_HEADER})
 ENDIF()
+
+include_directories(${OPENCV_INCLUDE_DIRS} ${QT_QTCORE_INCLUDE_DIR}/../ ${QT_QTCORE_INCLUDE_DIR} ${QT_QTCORE_INCLUDE_DIR}/../../src/3rdparty/libtiff/libtiff/)
+
 
