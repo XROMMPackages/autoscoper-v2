@@ -140,14 +140,6 @@ template <class T> void VolumeDescription::cropVolume(const T* data,
 					X.at<double>(numValidPointsToInsert,1) = ((double) (height_ - i - 1)) * scale_[1];
 					X.at<double>(numValidPointsToInsert++,2) = ((double) -k )* scale_[2];
 
-					//	tmp[2] = - tmp[2];
-					//tmp[1] = (height_ - tmp[1] - 1);
-					//tmp[0] = tmp[0];
-
-
-					   //j + min[0]/(float)dim[0];
-					   //i + ((volume.height()-max[1]-1)/(float)dim[1]);
-					   //k - min[2]/(float)dim[2];
 					if (j < min[0]) {
                         min[0] = j;
                     }
@@ -200,16 +192,13 @@ template <class T> void VolumeDescription::cropVolume(const T* data,
 
 	double localCenter[3];
 	for (int i = 0; i < 3; i++)
-		localCenter[i] = (pMIN[i] + pMAX[i])/2; // the center of the local coordinate system (P)
+		localCenter[i] = (pMIN[i] + pMAX[i])/2; 
 
 	double localscale[4];
 	for (int i = 0; i < 3; i++)	
-		localscale[i] = (pMAX[i] - pMIN[i])/2; // scaling from unitcoordinates (-1 , 1) to local coordinats (min , max) 
+		localscale[i] = (pMAX[i] - pMIN[i])/2; 
 	localscale[3] = 1;
 
-	// these are dynamically allocated so they can be saved
-
-	/* --------- set up translate/rotate --------- */
 	for (int i = 0; i < eigenVectors.cols; i++){
 		for (int j = 0; j < eigenVectors.rows; j++){
 			globalToMinMaxLocal_[i][j] = eigenVectors.at<double>(j,i);
@@ -220,9 +209,8 @@ template <class T> void VolumeDescription::cropVolume(const T* data,
 		globalToMinMaxLocal_[p][3] = mX[p];
 		globalToMinMaxLocal_[3][p] = 0;
 	}
-	globalToMinMaxLocal_[eigenVectors.rows][eigenVectors.cols] = 1; // bottom right hand corner element
+	globalToMinMaxLocal_[eigenVectors.rows][eigenVectors.cols] = 1; 
 
-	/* --------- set up PCA mean correction --------- */
 	for (int i = 0; i < 3; i++){
 		for (int j = 0; j < 3; j++){
 			if (i == j) 
@@ -237,7 +225,6 @@ template <class T> void VolumeDescription::cropVolume(const T* data,
 
 	minMaxLocalCorrection_[3][3] = 1;
 
-	/* --------- set up scale correction matrix --------- */
 	for (int s = 0; s < 4; s++){
 		for (int _s = 0; _s < 4; _s++){
 			if (s == _s) {
@@ -324,10 +311,6 @@ VolumeDescription::VolumeDescription(const Volume& volume, int threshold)
             exit(0);
         }
     }
-	// after the crop volume function is called,
-	// global_mat_a, b, and c are set in the crop volume
-	// function. We can safely assign these to an instance 
-	// of the volume discription.
 
     // The volume is empty
     if (min[0] > max[0] || min[1] > max[1] || min[2] > max[2]) {
@@ -440,8 +423,6 @@ VolumeDescription::VolumeDescription(const Volume& volume, int threshold)
 #endif
 }
 
-// pass a four dimensional point, first three to account
-// for rotation then final to account for translation.
 void VolumeDescription::localToGlobalCoordinateTrans(double *point,double* transformedPoint) {
 	transformedPoint[3] = 1; // set bottom entry to one
 	for (int i = 0; i < 3; i++) transformedPoint[i] = point[i]; // copy the current vals

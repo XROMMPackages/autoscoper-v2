@@ -489,9 +489,6 @@ int levmar_minimizationFunc(void *p, int mFuncs, int nVars, const double *values
 	return 0;
 }
 
-/* computes the manip coordframe and sets the 
-   modelview for the drr and rad renderrer. This
-   operation is independent of the optimization used. */
 void Tracker::minFuncCombined(const double *values){
 	for (int i = 0; i < this->trial()->num_volumes; i++){
 		double xyzypr[6] = { (*(const_cast<Trial&>(trial_)).getXCurve(i))(trial_.frame),
@@ -523,9 +520,6 @@ void Tracker::minFuncCombined(const double *values){
 	}
 }
 
-
-/* function used to compute the correlation score for the volID object from 
-   view number viewNum */
 double Tracker::getCorrelationScore(double * viewport, int volID, int viewNum)
 {
 
@@ -554,8 +548,6 @@ double Tracker::getCorrelationScore(double * viewport, int volID, int viewNum)
 	return 1.0 - curr_score;
 }
 
-
-/* function is used for the downhill simplex calculation */
 double Tracker::minimizationFunc(const double* values)
 {	
 	this->minFuncCombined(values);
