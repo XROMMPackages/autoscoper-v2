@@ -113,6 +113,7 @@ class AutoscoperMainWindow : public QMainWindow{
 		void save_tracking_results(QString filename);
 		void load_tracking_results(QString filename);
 		void load_tracking_results(QString filename, bool save_as_matrix,bool save_as_rows,bool save_with_commas,bool convert_to_cm,bool convert_to_rad,bool interpolate);
+
 	protected:
 		void closeEvent(QCloseEvent *event);
 
@@ -153,6 +154,8 @@ class AutoscoperMainWindow : public QMainWindow{
 		void on_actionSet_3D_Bounding_Box_Threshold_triggered(bool checked);
 		void on_actionShow_3D_BoundingBox_triggered(bool checked);
 		void on_actionShow_2D_BoundingBox_triggered(bool checked);
+		void on_actionShow_Projected_2D_Bounding_Box_triggered(bool checked);
+		void on_actionShow_Model_Coordinates_triggered(bool checked);
 
 		//Toolbar
 		void on_toolButtonOpenTrial_clicked();
@@ -165,6 +168,7 @@ class AutoscoperMainWindow : public QMainWindow{
 
 		void on_toolButtonTrack_clicked();
 		void on_toolButtonRetrack_clicked();
+
 		//Shortcuts	
 		void key_w_pressed();	
 		void key_e_pressed();	

@@ -73,8 +73,10 @@ RayCaster::RayCaster() : volumeDescription_(0),
     viewport_[1] = -1.0f;
     viewport_[2] =  2.0f;
     viewport_[3] =  2.0f;
+	viewport_[4] = 0.0f;
+	viewport_[5] = 1.0f;
 
-	b_viewport_ = new Buffer(4*sizeof(float), CL_MEM_READ_ONLY);
+	b_viewport_ = new Buffer(6*sizeof(float), CL_MEM_READ_ONLY);
 	b_viewport_->read(viewport_);
 }
 
@@ -139,12 +141,14 @@ RayCaster::setInvModelView(const double* invModelView)
 }
 
 void
-RayCaster::setViewport(float x, float y, float width, float height)
+RayCaster::setViewport(float x, float y, float width, float height, float angle)
 {
     viewport_[0] = x;
     viewport_[1] = y;
     viewport_[2] = width;
     viewport_[3] = height;
+	viewport_[4] = sin(angle);
+	viewport_[5] = cos(angle);
 
 #if DEBUG
 	fprintf(stdout, "RayCaster: new viewport: %f, %f, %f, %f\n",

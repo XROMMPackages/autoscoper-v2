@@ -96,10 +96,8 @@ public:
 	KeyCurve * getPitchCurve(int volumeID);
 	KeyCurve * getRollCurve(int volumeID);
 
-	//CoordFrame * getVolumeTrans(int volumeID);
 	CoordFrame * getVolumeMatrix(int volumeID); // Pivot
 
-	// getters and setters for tracker modes
 	void setRotationMode(rotationMode r) {this->rotation_Mode = r;}
 	void setOptimizationAlgorithm(opt_alg o){this->opt_Algorithm = o;}
 	void setComp_Correlations(comp_corr c){this->comp_Correlations = c;}

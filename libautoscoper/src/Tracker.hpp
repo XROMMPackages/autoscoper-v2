@@ -93,8 +93,9 @@ public:
 	void setRenderMode(renderMode r) {this->rMode = r;}
 	renderMode getRenderMode() {return this->rMode;}
 	void calculate_viewport(const CoordFrame& modelview, double* viewport, int volumeId) const;
+	void compute_fine_viewport(double *viewport, int viewID, int volumeId);
 	void getBBPoint(const CoordFrame& modelview,double* point, int volumeId) const;
-	void minFuncCombined(const double *values);
+	void setModelViewCombined(const double *values);
 	void computeTempViewport(double *viewport,int viewID, int volID);
 	double getCorrelationScore(double * viewport, int volID, int viewNum);
 	double FTOL;
@@ -105,8 +106,12 @@ public:
 	unsigned compute_cropped_bounding_box;
 	bool show3DBoundingBox;
 	bool show2DBoundingBox;
+	bool show2DProjectionBox;
+	bool showModelCoordinateAxes;
 	void setVolumeThreshold(int threshold);
-
+	bool compute_refined_viewport;
+	void printObjectCorrelations(double **);
+	
 private:
 	renderMode rMode;
     Trial trial_;

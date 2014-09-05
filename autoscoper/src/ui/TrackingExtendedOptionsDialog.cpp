@@ -24,8 +24,6 @@ void TrackingExtendedOptionsDialog::on_pushButtonApply_clicked(bool checked){
 		if(diag->radioButtonYPR->isChecked()){
 			mainwindow->getTracker()->trial()->setRotationMode(EULER_ANGLE);
 		}else if(diag->radioButtonQuat->isChecked()){
-			
-			(stderr, "quaternion is selected");
 			mainwindow->getTracker()->trial()->setRotationMode(QUATERNION);
 		}else if(diag->radioButtonAxisAngle->isChecked()){
 			mainwindow->getTracker()->trial()->setRotationMode(AXIS_ANGLE);
@@ -64,7 +62,18 @@ void TrackingExtendedOptionsDialog::on_pushButtonApply_clicked(bool checked){
 		if (diag->downhillSpinBox->text().toDouble() != 0.0) {
 			mainwindow->getTracker()->FTOL = diag->downhillSpinBox->text().toDouble();
 		}
+
+		if (diag->compute_refined_viewport->isChecked()){
+			mainwindow->getTracker()->compute_refined_viewport = true;
+		} else {
+			mainwindow->getTracker()->compute_refined_viewport = false;
+		}
 		
+#ifndef WITH_CMINPACK
+		diag->frame_8->hide();
+		diag->levenbergMarquardt->hide();
+#endif
+
 		// set the default correlation value
 		mainwindow->getTracker()->defaultCorrelationValue = diag->correlationDefaultSpinBox->value();
 

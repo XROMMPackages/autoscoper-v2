@@ -57,7 +57,7 @@ public:
 
     void set_rad(const void* data, size_t width, size_t height, size_t bps);
     void set_image_plane(float x, float y, float width, float height);
-    void set_viewport(float x, float y, float width, float height); 
+    void set_viewport(float x, float y, float width, float height, float angle = 0); 
     void render(const Buffer* buffer, unsigned width, unsigned height) const;
     const std::string& getName() const { return name_; }
     void setName(const std::string& name) { name_ = name; }
@@ -68,7 +68,7 @@ private:
 
 	Image* image_;
     float image_plane_[4];
-    float viewport_[4];
+    float viewport_[6];
     std::string name_;
 };
 

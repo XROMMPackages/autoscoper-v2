@@ -2,7 +2,7 @@ __kernel
 void rad_render_kernel(__global float* output,
                        unsigned width, unsigned height,
                        float u0, float v0, float u1, float v1,
-                       float u2, float v2, float u3, float v3,
+                       float u2, float v2, float u3, float v3,float _sin, float _cos,
                        __read_only image2d_t image)
 {
 	const uint x = get_global_id(0);
@@ -16,8 +16,11 @@ void rad_render_kernel(__global float* output,
 		return;
 	}
 
-	const float u = u2+u3*(x/(float)width);
-	const float v = v2+v3*(y/(float)height);
+	const float u_tmp = u2+u3*(x/(float)width);
+	const float v_tmp = v2+v3*(y/(float)height);
+
+	const float u =_cos * u_tmp + _sin * v_tmp;
+    const float v = -_sin * u_tmp + _cos * v_tmp;
 
 	const float s = (u-u0)/u1+0.5f;
 	const float t = 0.5f-(v-v0)/v1;

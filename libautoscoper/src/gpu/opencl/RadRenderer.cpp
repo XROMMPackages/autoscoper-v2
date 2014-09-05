@@ -69,7 +69,9 @@ RadRenderer::RadRenderer() : image_(0)
     viewport_[1] = -1.0f;
     viewport_[2] =  2.0f;
     viewport_[3] =  2.0f;
-    
+    viewport_[4] = 0.0f;
+	viewport_[5] = 1.0f;
+
     stringstream name_stream;
     name_stream << "RadRenderer" << (++num_rad_renderers);
     name_ = name_stream.str();
@@ -110,12 +112,14 @@ RadRenderer::set_image_plane(float x, float y, float width, float height)
 }
 
 void
-RadRenderer::set_viewport(float x, float y, float width, float height)
+RadRenderer::set_viewport(float x, float y, float width, float height, float angle)
 {
     viewport_[0] = x;
     viewport_[1] = y;
     viewport_[2] = width;
     viewport_[3] = height;
+	viewport_[4] = sin(angle);
+	viewport_[5] = cos(angle);
 }
 
 void
@@ -135,6 +139,8 @@ RadRenderer::render(const Buffer* buffer, unsigned width, unsigned height) const
 	kernel->addArg(viewport_[1]);
 	kernel->addArg(viewport_[2]);
 	kernel->addArg(viewport_[3]);
+	kernel->addArg(viewport_[4]);
+	kernel->addArg(viewport_[5]);
 	kernel->addImageArg(image_);
 
     // Calculate the block and grid sizes.

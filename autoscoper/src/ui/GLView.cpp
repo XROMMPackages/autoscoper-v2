@@ -472,6 +472,12 @@ void GLView::paintGL()
 				if (mainwindow->getTracker()->show3DBoundingBox){
 					drawBB(modelview, idx_volume);
 				}
+				if (mainwindow->getTracker()->show2DProjectionBox){
+					draw2DProjectionBB(modelview, idx_volume);
+				}
+				if (mainwindow->getTracker()->showModelCoordinateAxes){
+					drawLocalCoordAxes(modelview, idx_volume);
+				}
 			}
 
 			glMatrixMode(GL_MODELVIEW);
@@ -847,7 +853,6 @@ void GLView::drawViewport(const CoordFrame& modelview, int volumeId){
 
 void GLView::drawBB(const CoordFrame& modelview, int volumeId){
 	CameraViewWidget * cameraViewWidget = dynamic_cast <CameraViewWidget *> ( this->parent());
-	double bb [4];
 
 	double corners_[24] = {1,1,1, 1,1,-1, 1,-1,1, -1,1,1, 1,-1,-1, -1,1,-1, -1,-1,1, -1,-1,-1};
 	for (int j = 0; j < 8; j++) {
@@ -895,18 +900,181 @@ void GLView::drawBB(const CoordFrame& modelview, int volumeId){
 	glVertex3d(corners_[9], corners_[10], corners_[11]);
 	glEnd();
 
-	glColor3f(0.0f,1.0f,0.0f);
-	glBegin(GL_LINES);
-	double corners2_[21] = {0,0,0, 0,0,-1, 0,0,1, 0,1,0, 0,-1,0, -1,0,0, 1,0,0,};
+}
+
+void GLView::drawLocalCoordAxes(const CoordFrame& modelview, int volumeId){
+	CameraViewWidget * cameraViewWidget = dynamic_cast <CameraViewWidget *> ( this->parent());
+
+	double corners2_[21] = {0,0,0, 1,0,0, 0,0,1, 0,1,0, 0,0,-1, 0,-1,0, -1,0,0};
 	for (int j = 0; j < 7; j++) {
 		cameraViewWidget->getMainWindow()->getTracker()->getBBPoint(modelview,&corners2_[3*j],volumeId);
 	}
+
+	glColor3f(1.0f,0.0f,0.0f);
+	glBegin(GL_LINES);
 	for (int k = 1; k < 7; k++){
 		glVertex3d(corners2_[0], corners2_[1], corners2_[2]);
 		glVertex3d(corners2_[3* k], corners2_[3* k + 1], corners2_[3* k + 2]);
 	}
 
 	glEnd();
+	glPopAttrib();
+}
 
+void GLView::draw2DProjectionBB(const CoordFrame& modelview, int volumeId){
+
+	CameraViewWidget * cameraViewWidget = dynamic_cast <CameraViewWidget *> ( this->parent());
+
+	double corners_[24] = {1,1,1, 1,1,-1, 1,-1,1, -1,1,1, 1,-1,-1, -1,1,-1, -1,-1,1, -1,-1,-1};
+	for (int j = 0; j < 8; j++) {
+		cameraViewWidget->getMainWindow()->getTracker()->getBBPoint(modelview,&corners_[3*j],volumeId);
+	}
+
+	double corners2_[21] = {0,0,0, 1,0,0, 0,0,1, 0,1,0, 0,0,-1, 0,-1,0, -1,0,0};
+	for (int j = 0; j < 7; j++) {
+		cameraViewWidget->getMainWindow()->getTracker()->getBBPoint(modelview,&corners2_[3*j],volumeId);
+	}
+
+	double min_area = 10000000000;
+	double min_angle = 10000000000;
+
+	double final_x = 0.0;
+	double final_y = 0.0;
+	double final_min_x = 0.0;
+	double final_min_y = 0.0;
+	double final_max_x = 0.0;
+	double final_max_y = 0.0;
+
+	double center_x =  corners2_[0] / corners_[2];
+	double center_y =  corners2_[1] / corners_[2];
+
+	for (int i = 0; i < 3; i++){ 
+		double curr_z = corners2_[2];
+		double curr_x = corners2_[0] / curr_z;
+		double curr_y = corners2_[1] / curr_z;
+		
+		double target_z = corners2_[3*(i+1) + 2];
+		double target_x = corners2_[3*(i+1)] / target_z;
+		double target_y = corners2_[3*(i+1) + 1] / target_z;
+
+		double vec_x = curr_x - target_x;
+		double vec_y = curr_y - target_y;
+		double norm = sqrt(pow(vec_x,2) + pow(vec_y,2));
+		
+		vec_x /= norm;
+		vec_y /= norm;
+
+		double angle = acos(vec_y); 
+
+		double rotation_matrix[2][2] = {{cos(angle), -sin(angle)}, {sin(angle), cos(angle)}};
+
+		double corners_project[15]; 
+		for (int i = 0; i < 15; i++) corners_project[i] = 0;
+
+		double min_x = 1000000000.0;
+		double min_y = 1000000000.0;
+		double max_x = 0.0;
+		double max_y = 0.0;
+
+		double result_point[8][2];
+		for (int j = 0; j < 8; j++){
+
+			double model_x = corners_[3*j] / corners_[3*j+2];
+			double model_y = corners_[3*j + 1] / corners_[3*j+2];
+
+			model_x -= center_x;
+			model_y -= center_y;
+
+			double temp_point[2] = {model_x, model_y};
+
+			for (int y = 0; y < 2; y++){
+				double tempRowSum = 0.0;
+				for (int x = 0; x < 2; x++){
+					tempRowSum += (rotation_matrix[y][x] * temp_point[x]);
+				}
+				result_point[i][y] = tempRowSum;
+			}
+			
+			if (result_point[i][0] < min_x){
+				min_x = result_point[i][0];
+			}
+			if (result_point[i][0] > max_x){
+				max_x = result_point[i][0];
+			}
+			if (result_point[i][1] < min_y){
+				min_y = result_point[i][1];
+			}
+			if (result_point[i][1] > max_y){
+				max_y = result_point[i][1];
+			}
+
+			result_point[i][0] +=center_x;
+			result_point[i][1] +=center_y;
+
+		}
+
+			if (i == 0) glColor3f(1.0f,0.0f,0.0f);
+			else if (i == 1) glColor3f(1.0f,1.0f,0.0f);
+			else if (i == 2) glColor3f(1.0f,0.0f,1.0f);
+			glBegin(GL_LINES);
+
+
+		if (((max_x - min_x) != 0 && (max_y - min_y) != 0) && (max_x - min_x) * (max_y - min_y) < min_area) {
+			min_area = (max_x - min_x) * (max_y - min_y);
+			min_angle = angle;
+			final_x = (max_x - min_x);
+			final_y = (max_y - min_y);
+			final_min_x = min_x;
+			final_min_y = min_y;
+			final_max_x = max_x;
+			final_max_y = max_y;
+		}
+
+	}
+
+	double rotated_pt[4][2];
+	rotated_pt[0][0] = final_max_x;
+	rotated_pt[0][1] = final_max_y;
+
+	rotated_pt[1][0] = final_min_x;
+	rotated_pt[1][1] = final_min_y;
+
+	rotated_pt[2][0] = final_max_x;
+	rotated_pt[2][1] = final_min_y;
+
+	rotated_pt[3][0] = final_min_x;
+	rotated_pt[3][1] = final_max_y;
+
+	double unrotated_pts[4][2];
+	double rotation_matrix[2][2] = {{cos(min_angle), -sin(min_angle)}, {sin(min_angle), cos(min_angle)}};
+
+	for (int sum = 0; sum < 4; sum++){
+		for (int i = 0; i < 2; i++){
+			double tempRowSums= 0;
+			for (int j = 0; j < 2; j++){
+				tempRowSums+= (rotation_matrix[j][i] * rotated_pt[sum][j]);
+			}
+			unrotated_pts[sum][i] = tempRowSums;
+		}
+	}
+
+	for (int x = 0; x < 4; x++){
+		unrotated_pts[x][0] = -2*(unrotated_pts[x][0] +center_x);
+		unrotated_pts[x][1] = -2*(unrotated_pts[x][1] +center_y);
+	}
+
+	glVertex3d(unrotated_pts[0][0],unrotated_pts[0][1],-2);
+	glVertex3d(unrotated_pts[2][0],unrotated_pts[2][1],-2);
+
+	glVertex3d(unrotated_pts[1][0],unrotated_pts[1][1],-2);
+	glVertex3d(unrotated_pts[2][0],unrotated_pts[2][1],-2);
+
+	glVertex3d(unrotated_pts[0][0],unrotated_pts[0][1],-2);
+	glVertex3d(unrotated_pts[3][0],unrotated_pts[3][1],-2);
+
+	glVertex3d(unrotated_pts[1][0],unrotated_pts[1][1],-2);
+	glVertex3d(unrotated_pts[3][0],unrotated_pts[3][1],-2);
+			
+	glEnd();
 	glPopAttrib();
 }

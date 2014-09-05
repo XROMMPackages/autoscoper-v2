@@ -441,6 +441,8 @@ Trial</string>
     <addaction name="separator"/>
     <addaction name="actionShow_2D_BoundingBox"/>
     <addaction name="actionShow_3D_BoundingBox"/>
+    <addaction name="actionShow_Projected_2D_Bounding_Box"/>
+    <addaction name="actionShow_Model_Coordinates"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -608,6 +610,22 @@ Trial</string>
   <action name="actionSet_3D_Bounding_Box_Threshold">
    <property name="text">
     <string>Set 3D Bounding Box Threshold</string>
+   </property>
+  </action>
+  <action name="actionShow_Projected_2D_Bounding_Box">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show Projected 2D Bounding Box</string>
+   </property>
+  </action>
+  <action name="actionShow_Model_Coordinates">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show Model Coordinates</string>
    </property>
   </action>
  </widget>

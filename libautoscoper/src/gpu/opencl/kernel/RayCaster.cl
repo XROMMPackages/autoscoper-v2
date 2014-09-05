@@ -18,8 +18,11 @@ void volume_render_kernel(__global float* buffer,
     if (x > width-1 || y > height-1) return;
 
     // Calculate the normalized device coordinates using the viewport
-    const float u = viewport[0]+viewport[2]*(x/(float)width);
-    const float v = viewport[1]+viewport[3]*(y/(float)height);
+    const float u_tmp = viewport[0]+viewport[2]*(x/(float)width);
+    const float v_tmp = viewport[1]+viewport[3]*(y/(float)height);
+
+	const float u = viewport[5] * u_tmp + viewport[4] * v_tmp;
+    const float v = -viewport[4] * u_tmp + viewport[5] * v_tmp;;
 
     // Determine the look ray in camera space.
     const float3 look = step*normalize((float3)(u, v, -2.f));

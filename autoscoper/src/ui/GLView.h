@@ -60,6 +60,8 @@ private:
 	void draw_textured_quad(const double* pts, unsigned int texid);
 	void drawViewport(const CoordFrame& modelview, int volumeId);
 	void drawBB(const CoordFrame& modelview, int volumeId);
+	void draw2DProjectionBB(const CoordFrame& modelview, int volumeId);
+	void drawLocalCoordAxes(const CoordFrame& modelview, int volumeId);
 };
 
 

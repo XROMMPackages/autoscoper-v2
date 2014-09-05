@@ -853,7 +853,7 @@ void AutoscoperMainWindow::openTrial(QString filename){
 			getManipulator(i)->set_transform(Mat4d());
 		}
 		
-		trial_filename = filename.toStdString();
+		trial_filename = filename.toAscii().constData();
 		is_trial_saved = true;
 		is_tracking_saved = true;
 
@@ -1773,13 +1773,26 @@ void AutoscoperMainWindow::setupShortcuts(){
 
 void AutoscoperMainWindow::on_actionShow_2D_BoundingBox_triggered(bool checked){
 	tracker->show2DBoundingBox = checked;
+	redrawGL();
 }
 
 void AutoscoperMainWindow::on_actionShow_3D_BoundingBox_triggered(bool checked){
 	tracker->show3DBoundingBox = checked;
+	redrawGL();
 }
 
 void AutoscoperMainWindow::on_actionSet_3D_Bounding_Box_Threshold_triggered(bool checked) {
 	int new_threshold = QInputDialog::getInt(this, tr("Input Integer Bounding Box Threshold"), tr("Threshold "));
 	tracker->setVolumeThreshold(new_threshold);
+	redrawGL();
+}
+
+void AutoscoperMainWindow::on_actionShow_Projected_2D_Bounding_Box_triggered(bool checked){
+	tracker->show2DProjectionBox = checked;
+	redrawGL();
+}
+
+void AutoscoperMainWindow::on_actionShow_Model_Coordinates_triggered(bool checked){
+	tracker->showModelCoordinateAxes = checked;
+	redrawGL();
 }

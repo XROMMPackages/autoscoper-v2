@@ -60,7 +60,7 @@ public:
     void setInvModelView(const double* invModelView);
 	void setModelView(const CoordFrame &modelView) {modelView_ = modelView;}
 	CoordFrame getModelView() {return this->modelView_;}
-    void setViewport(float x, float y, float width, float height);
+    void setViewport(float x, float y, float width, float height, float angle = 0);
     void render(const Buffer* buffer, unsigned width, unsigned height);
 
     float getSampleDistance() const {
@@ -109,7 +109,7 @@ private:
 	//double modelView_[16];
 	CoordFrame modelView_;
 
-    float viewport_[4];
+    float viewport_[6];
 	Buffer* b_viewport_;
     float sampleDistance_;
     float rayIntensity_;

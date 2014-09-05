@@ -272,7 +272,6 @@ KeyCurve * Trial::getXCurve(int volumeID){
 	}
 }
 
-
 KeyCurve * Trial::getYCurve(int volumeID){
 	if(volumeID < volumestransform.size() && 
 		volumeID >= 0){
