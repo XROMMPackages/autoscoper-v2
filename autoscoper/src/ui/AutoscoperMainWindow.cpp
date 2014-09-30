@@ -1117,7 +1117,7 @@ void AutoscoperMainWindow::on_actionSaveForBatch_triggered(bool checked){
 
 				// presets
 				rotationMode R;
-				opt_alg O;
+				//opt_alg O;
 				comp_corr C;
 				renderMode B;
 
@@ -1126,14 +1126,14 @@ void AutoscoperMainWindow::on_actionSaveForBatch_triggered(bool checked){
 						R = AXIS_ANGLE;
 					} else if (trDiag->diag->radioButtonQuat->isChecked()){
 						R = QUATERNION;
-					} else if (trDiag->diag->radioButtonYPR->isChecked()){
+					}else if (trDiag->diag->radioButtonYPR->isChecked()){
 						R = EULER_ANGLE;
 					}
-					if (trDiag->diag->downHillSimplex->isChecked()){
+					/*if (trDiag->diag->downHillSimplex->isChecked()){
 						O = DOWNHILL_SIMPLEX;
 					} else if (trDiag->diag->levenbergMarquardt->isChecked()){
 						O = LEVENBERG_MARQUARDT;
-					}
+					}*/
 					if (trDiag->diag->addCorrelations->isChecked()){
 						C = ADD;
 					} else if (trDiag->diag->addCorrelations->isChecked()) {
@@ -1143,26 +1143,27 @@ void AutoscoperMainWindow::on_actionSaveForBatch_triggered(bool checked){
 						B = SEP;
 					} else if (trDiag->diag->renderOptionB->isChecked()){
 						B = INDV;
-					} else if (trDiag->diag->renderOptionC->isChecked()){
+					} 
+					/*else if (trDiag->diag->renderOptionC->isChecked()){
 						B = COMB;
-					}
+					}*/
 				} 
 				
 				xmlWriter.writeStartElement("TrackingExtendedData");
 				xmlWriter.writeAttribute("RotationType", QString::number(R));
-				xmlWriter.writeAttribute("Optimization", QString::number(O));
-				xmlWriter.writeAttribute("DownhillSimplexTolerance", QString::number(
-					trDiag->diag->downhillSpinBox->value()));
-				xmlWriter.writeAttribute("LevMarTransMultiplier", QString::number(
-					trDiag->diag->levmarTransSpinBox->value()));
-				xmlWriter.writeAttribute("LevMarRotateMultiplier", QString::number(
-					trDiag->diag->levmarRotateSpinBox->value()));
+				//xmlWriter.writeAttribute("Optimization", QString::number(O));
+				//xmlWriter.writeAttribute("DownhillSimplexTolerance", QString::number(
+				//	trDiag->diag->downhillSpinBox->value()));
+				//xmlWriter.writeAttribute("LevMarTransMultiplier", QString::number(
+				//	trDiag->diag->levmarTransSpinBox->value()));
+				//xmlWriter.writeAttribute("LevMarRotateMultiplier", QString::number(
+				//	trDiag->diag->levmarRotateSpinBox->value()));
 				xmlWriter.writeAttribute("Correlations", QString::number(C));
 				xmlWriter.writeAttribute("Bounding", QString::number(B));
-				xmlWriter.writeAttribute("BoxDivisionFactor", QString::number(
-					trDiag->diag->bbDivisionFactor->value()));
-				xmlWriter.writeAttribute("DefaultCorrelationScore", QString::number(
-					trDiag->diag->correlationDefaultSpinBox->value()));
+				//xmlWriter.writeAttribute("BoxDivisionFactor", QString::number(
+				//	trDiag->diag->bbDivisionFactor->value()));
+				//xmlWriter.writeAttribute("DefaultCorrelationScore", QString::number(
+				//	trDiag->diag->correlationDefaultSpinBox->value()));
 				xmlWriter.writeCharacters(tracking_filename);
 				xmlWriter.writeEndElement();
 				delete trDiag;
@@ -1272,36 +1273,43 @@ void AutoscoperMainWindow::runBatch(QString batchfile, bool saveData){
 							switch (attr.value("Correlations").toString().toInt()){
 								case ADD:
 									tracker->trial()->setComp_Correlations(ADD);
+									break;
 								case MULTIPLY:
 									tracker->trial()->setComp_Correlations(MULTIPLY);
+									break;
 							}
 							
-							switch (attr.value("Optimization").toString().toInt()){
+							/*switch (attr.value("Optimization").toString().toInt()){
 								case DOWNHILL_SIMPLEX:
 									tracker->trial()->setOptimizationAlgorithm(DOWNHILL_SIMPLEX);
 								case LEVENBERG_MARQUARDT:
 									tracker->trial()->setOptimizationAlgorithm(LEVENBERG_MARQUARDT);
-							}
+							}*/
 							
 							switch(attr.value("RotationType").toString().toInt()){
 								case AXIS_ANGLE:
 									tracker->trial()->setRotationMode(AXIS_ANGLE);
+									break;
 								case QUATERNION:
 									tracker->trial()->setRotationMode(QUATERNION);
+									break;
 								case EULER_ANGLE:
 									tracker->trial()->setRotationMode(EULER_ANGLE);
+									break;
 							}
 							
 							switch(attr.value("Bounding").toString().toInt()){
 								case SEP:
 									tracker->setRenderMode(SEP);
+									break;
 								case INDV:
 									tracker->setRenderMode(INDV);
-								case COMB:
-									tracker->setRenderMode(COMB);
+									break;
+								//case COMB:
+								//	tracker->setRenderMode(COMB);
 							}
 							
-							if (attr.value("LevMarTransMultiplier") != 0){
+							/*if (attr.value("LevMarTransMultiplier") != 0){
 								tracker->lTransMultiplier = attr.value("LevMarTransMultiplier").toString().toDouble();
 							}
 							if (attr.value("LevMarRotateMultiplier") != 0){
@@ -1312,8 +1320,8 @@ void AutoscoperMainWindow::runBatch(QString batchfile, bool saveData){
 							}
 							if (attr.value("BoxDivisionFactor") != 0){
 								tracker->box_division_factor = attr.value("BoxDivisionFactor").toString().toInt();
-							}
-							tracker->defaultCorrelationValue = attr.value("DefaultCorrelationScore").toString().toDouble();
+							}*/
+							//tracker->defaultCorrelationValue = attr.value("DefaultCorrelationScore").toString().toDouble();
 						}
 						else if (name == "TrackingOptions")
 						{
@@ -1612,41 +1620,48 @@ void AutoscoperMainWindow::on_actionOpen_Extended_Tracking_Options_triggered(boo
 		tracking_extended_dialog = new TrackingExtendedOptionsDialog(this);
 	
 	// set defaults 
-	tracking_extended_dialog->diag->downhillSpinBox->setValue(getTracker()->FTOL);
+	/*tracking_extended_dialog->diag->downhillSpinBox->setValue(getTracker()->FTOL);
 	tracking_extended_dialog->diag->levmarRotateSpinBox->setValue(getTracker()->lRotateMultiplier);
 	tracking_extended_dialog->diag->levmarTransSpinBox->setValue(getTracker()->lTransMultiplier);
-	tracking_extended_dialog->diag->bbDivisionFactor->setValue(getTracker()->box_division_factor);
+	tracking_extended_dialog->diag->bbDivisionFactor->setValue(getTracker()->box_division_factor);*/
 
 	switch (getTracker()->getRenderMode()){
 		case SEP:
 			tracking_extended_dialog->diag->renderOptionA->setChecked(true);
+			break;
 		case INDV:
 			tracking_extended_dialog->diag->renderOptionB->setChecked(true);
-		case COMB:
-			tracking_extended_dialog->diag->renderOptionC->setChecked(true);
+			break;
+		/*case COMB:
+			tracking_extended_dialog->diag->renderOptionC->setChecked(true);*/
 	}
 
 	switch (getTracker()->trial()->getComputeCorrelations()){
 		case ADD:
 			tracking_extended_dialog->diag->addCorrelations->setChecked(true);
+			break;
 		case MULTIPLY:
 			tracking_extended_dialog->diag->multiplyCorrelations->setChecked(true);
+			break;
 	}
 
-	switch (getTracker()->trial()->getOptAlg()){
+	/*switch (getTracker()->trial()->getOptAlg()){
 		case DOWNHILL_SIMPLEX:
 			tracking_extended_dialog->diag->downHillSimplex->setChecked(true);
 		case LEVENBERG_MARQUARDT:
 			tracking_extended_dialog->diag->levenbergMarquardt->setChecked(true);
-	}
+	}*/
 
 	switch(getTracker()->trial()->getRotationMode()){
 		case EULER_ANGLE:
 			tracking_extended_dialog->diag->radioButtonYPR->setChecked(true);
+			break;
 		case QUATERNION:
 			tracking_extended_dialog->diag->radioButtonQuat->setChecked(true);
+			break;
 		case AXIS_ANGLE:
 			tracking_extended_dialog->diag->radioButtonAxisAngle->setChecked(true);
+			break;
 	}
 
 	tracking_extended_dialog->show();

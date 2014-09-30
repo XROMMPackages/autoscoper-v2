@@ -3,8 +3,8 @@
 #ifndef DOWNHILL_SIMPLEX_H
 #define DOWNHILL_SIMPLEX_H
 
-#define   MP  22
-#define   NP  21    //Maximum value for NDIM=20
+#define   MP  100
+#define   NP  100    //Maximum value for NDIM=20
 typedef   double MAT[MP][NP];
 
 // We define this function.

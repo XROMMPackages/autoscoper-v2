@@ -9,6 +9,13 @@ TrackingExtendedOptionsDialog::TrackingExtendedOptionsDialog(QWidget *parent):
 												QDialog(parent),
 												diag(new Ui::TrackingExtendedOptionsDialog){
 	diag->setupUi(this);
+	AutoscoperMainWindow *mainwindow  = dynamic_cast <AutoscoperMainWindow *> ( parent);
+
+	diag->renderOptionC->hide();
+	diag->frame_3->hide();
+	diag->frame_7->hide();
+	diag->frame_8->hide();
+	diag->frame_9->hide();
 }
 
 TrackingExtendedOptionsDialog::~TrackingExtendedOptionsDialog(){
@@ -30,11 +37,11 @@ void TrackingExtendedOptionsDialog::on_pushButtonApply_clicked(bool checked){
 		}
 
 		// Optimization Algorithm
-		if (diag->downHillSimplex->isChecked()){
+		/*if (diag->downHillSimplex->isChecked()){
 			mainwindow->getTracker()->trial()->setOptimizationAlgorithm(DOWNHILL_SIMPLEX);
 		} else if (diag->levenbergMarquardt->isChecked()){
 			mainwindow->getTracker()->trial()->setOptimizationAlgorithm(LEVENBERG_MARQUARDT);
-		}
+		}*/
 
 		// Compute Correlations
 		if (diag->addCorrelations->isChecked()){
@@ -47,12 +54,13 @@ void TrackingExtendedOptionsDialog::on_pushButtonApply_clicked(bool checked){
 			mainwindow->getTracker()->setRenderMode(SEP);
 		} else if (diag->renderOptionB->isChecked()){
 			mainwindow->getTracker()->setRenderMode(INDV);
-		} else if (diag->renderOptionC->isChecked()){
+		} 
+		/*else if (diag->renderOptionC->isChecked()){
 			mainwindow->getTracker()->setRenderMode(COMB);
-		}
+		}*/
 		
 		// set the levenberg marquardt multipliers
-		if (diag->levmarRotateSpinBox->text().toDouble() != 0.0){
+		/*if (diag->levmarRotateSpinBox->text().toDouble() != 0.0){
 			mainwindow->getTracker()->lRotateMultiplier = diag->levmarRotateSpinBox->text().toDouble();
 		}
 		if (diag->levmarTransSpinBox->text().toDouble() != 0.0){
@@ -61,7 +69,7 @@ void TrackingExtendedOptionsDialog::on_pushButtonApply_clicked(bool checked){
 
 		if (diag->downhillSpinBox->text().toDouble() != 0.0) {
 			mainwindow->getTracker()->FTOL = diag->downhillSpinBox->text().toDouble();
-		}
+		}*/
 
 		if (diag->compute_refined_viewport->isChecked()){
 			mainwindow->getTracker()->compute_refined_viewport = true;
@@ -74,11 +82,11 @@ void TrackingExtendedOptionsDialog::on_pushButtonApply_clicked(bool checked){
 		diag->levenbergMarquardt->hide();
 #endif
 
-		// set the default correlation value
-		mainwindow->getTracker()->defaultCorrelationValue = diag->correlationDefaultSpinBox->value();
+		//// set the default correlation value
+		//mainwindow->getTracker()->defaultCorrelationValue = diag->correlationDefaultSpinBox->value();
 
-		// set bounding box division factor
-		mainwindow->getTracker()->box_division_factor = diag->bbDivisionFactor->text().toInt();
+		//// set bounding box division factor
+		//mainwindow->getTracker()->box_division_factor = diag->bbDivisionFactor->text().toInt();
 
 	}
 	this->accept();

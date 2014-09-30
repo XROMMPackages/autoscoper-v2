@@ -401,7 +401,8 @@ void Tracker::optimize(int frame, int dFrame, int repeats)
 
 /* function to compute the viewport of the current bounding box */
 void Tracker::computeTempViewport(double *viewport, int viewID, int volID){
-	if (this->rMode == COMB){
+	if (this->rMode ==
+		COMB){
 		double min_max[4] = {1.0,1.0,-1.0,-1.0};
 		for (int c = 0; c < trial_.num_volumes; c++){
 			this->calculate_viewport(views_[viewID]->drrRenderer(c)->getModelView(),viewport, c);
@@ -598,11 +599,11 @@ void Tracker::setModelViewCombined(const double *values){
 		CoordFrame xcframe = CoordFrame::from_xyzypr(xyzypr);
 		CoordFrame manip;
 
-		if (rMode == AXIS_ANGLE){
+		if ((const_cast<Trial&>(trial_)).getRotationMode() == AXIS_ANGLE){
 			manip = CoordFrame::from_xyzAxis_angle(&values[6*i]);
-		} else if (rMode == QUATERNION){
+		} else if ((const_cast<Trial&>(trial_)).getRotationMode()  == QUATERNION){
 			manip = CoordFrame::from_xyzijk(&values[6*i]);
-		} else if (rMode == EULER_ANGLE){
+		} else if ((const_cast<Trial&>(trial_)).getRotationMode()  == EULER_ANGLE){
 			manip = CoordFrame::from_xyzypr(&values[6*i]);
 		}
 
@@ -652,7 +653,7 @@ double Tracker::getCorrelationScore(double * viewport, int volID, int viewNum)
 
 double Tracker::minimizationFunc(const double* values)
 {	
-	FILE *corr_data = fopen("correlations.txt", "w");
+	//FILE *corr_data = fopen("correlations.txt", "w");
 
 	this->setModelViewCombined(values);
 	double **object_correlations = new double*[trial_.num_volumes];
